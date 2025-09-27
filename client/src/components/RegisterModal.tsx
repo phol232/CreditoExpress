@@ -77,7 +77,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[700px] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full h-[750px] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('register.title')}</DialogTitle>
           <DialogDescription>{t('register.subtitle')}</DialogDescription>
@@ -119,16 +119,16 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
           </div>
 
           {/* Right Side - Form */}
-          <div className="flex flex-col justify-center p-8 lg:p-12 bg-background">
+          <div className="flex flex-col justify-center p-6 lg:p-8 bg-background overflow-y-auto">
             {/* Logo/Brand */}
-            <div className="flex items-center mb-8">
+            <div className="flex items-center mb-6">
               <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-indigo-700 rounded-lg flex items-center justify-center mr-3">
                 <Star className="h-5 w-5 text-white" />
               </div>
             </div>
 
             {/* Header */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 {t('register.title')}
               </h1>
@@ -139,7 +139,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
 
             {/* Form */}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -154,7 +154,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             {...field} 
                             placeholder="Juan"
                             data-testid="input-register-firstname"
-                            className="h-11 border-input bg-background"
+                            className="h-9 border-input bg-background"
                           />
                         </FormControl>
                         <FormMessage />
@@ -175,7 +175,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             {...field} 
                             placeholder="Pérez"
                             data-testid="input-register-lastname"
-                            className="h-11 border-input bg-background"
+                            className="h-9 border-input bg-background"
                           />
                         </FormControl>
                         <FormMessage />
@@ -198,7 +198,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                           type="email"
                           placeholder="Introduce tu dirección de email"
                           data-testid="input-register-email"
-                          className="h-11 border-input bg-background"
+                          className="h-9 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -220,7 +220,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                           type="tel"
                           placeholder="+34 600 000 000"
                           data-testid="input-register-phone"
-                          className="h-11 border-input bg-background"
+                          className="h-9 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -243,7 +243,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             type={showPassword ? 'text' : 'password'}
                             placeholder="Introduce contraseña"
                             data-testid="input-register-password"
-                            className="h-11 border-input bg-background pr-12"
+                            className="h-9 border-input bg-background pr-12"
                           />
                           <Button
                             type="button"
@@ -277,7 +277,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             type={showConfirmPassword ? 'text' : 'password'}
                             placeholder="Confirma tu contraseña"
                             data-testid="input-register-confirm-password"
-                            className="h-11 border-input bg-background pr-12"
+                            className="h-9 border-input bg-background pr-12"
                           />
                           <Button
                             type="button"
@@ -319,7 +319,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+                  className="w-full h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
                   disabled={isSubmitting}
                   data-testid="button-register-submit"
                 >
@@ -336,7 +336,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
             </Form>
 
             {/* Divider */}
-            <div className="relative my-4">
+            <div className="relative my-3">
               <Separator />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="bg-background px-4 text-muted-foreground text-sm">
@@ -348,7 +348,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
             {/* Social Register */}
             <Button 
               variant="outline" 
-              className="w-full h-11 hover-elevate mb-4" 
+              className="w-full h-9 hover-elevate mb-3" 
               onClick={() => handleSocialRegister('google')}
               data-testid="button-register-google"
             >
@@ -357,7 +357,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
             </Button>
 
             {/* Login Link */}
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-muted-foreground mt-2">
               {t('register.have_account')}{' '}
               <Button 
                 variant="ghost" 

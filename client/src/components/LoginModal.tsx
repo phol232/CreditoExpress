@@ -60,14 +60,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[600px] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full h-[650px] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('login.title')}</DialogTitle>
           <DialogDescription>{t('login.subtitle')}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
           {/* Left Side - Form */}
-          <div className="flex flex-col justify-center p-8 lg:p-12 bg-background">
+          <div className="flex flex-col justify-center p-6 lg:p-8 bg-background overflow-y-auto">
             {/* Logo/Brand */}
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center mr-3">
@@ -76,7 +76,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             </div>
 
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-6">
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 {t('login.title')}
               </h1>
@@ -87,7 +87,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
             {/* Form */}
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="email"
@@ -102,7 +102,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                           type="email"
                           placeholder="Introduce tu dirección de email"
                           data-testid="input-login-email"
-                          className="h-12 border-input bg-background"
+                          className="h-10 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -125,7 +125,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             type={showPassword ? 'text' : 'password'}
                             placeholder="Introduce contraseña"
                             data-testid="input-login-password"
-                            className="h-12 border-input bg-background pr-12"
+                            className="h-10 border-input bg-background pr-12"
                           />
                           <Button
                             type="button"
@@ -173,7 +173,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+                  className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
                   disabled={isSubmitting}
                   data-testid="button-login-submit"
                 >
@@ -190,7 +190,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             </Form>
 
             {/* Divider */}
-            <div className="relative my-6">
+            <div className="relative my-4">
               <Separator />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="bg-background px-4 text-muted-foreground text-sm">
@@ -202,7 +202,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             {/* Social Login */}
             <Button 
               variant="outline" 
-              className="w-full h-12 hover-elevate" 
+              className="w-full h-10 hover-elevate" 
               onClick={() => handleSocialLogin('google')}
               data-testid="button-login-google"
             >
@@ -211,7 +211,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             </Button>
 
             {/* Register Link */}
-            <div className="text-center mt-6 text-sm text-muted-foreground">
+            <div className="text-center mt-4 text-sm text-muted-foreground">
               {t('login.no_account')}{' '}
               <Button 
                 variant="ghost" 
