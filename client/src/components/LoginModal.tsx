@@ -60,14 +60,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[650px] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full h-[90vh] sm:h-[85vh] min-h-[500px] sm:min-h-[650px] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('login.title')}</DialogTitle>
           <DialogDescription>{t('login.subtitle')}</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 h-full">
           {/* Left Side - Form */}
-          <div className="flex flex-col justify-center p-6 lg:p-8 bg-background overflow-y-auto">
+          <div className="flex flex-col justify-start p-4 lg:p-6 bg-background overflow-y-auto">
             {/* Logo/Brand */}
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center mr-3">
@@ -133,7 +133,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-0 top-0 h-full px-3"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >
@@ -227,7 +227,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
           </div>
 
           {/* Right Side - Background Pattern */}
-          <div className="hidden lg:block relative bg-gradient-to-br from-purple-600 via-purple-700 to-purple-900 overflow-hidden">
+          <div className="hidden md:block relative bg-gradient-to-br from-purple-600 via-purple-700 to-purple-900 overflow-hidden">
             {/* Geometric Pattern */}
             <div className="absolute inset-0">
               {/* Background shapes */}
