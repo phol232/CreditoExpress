@@ -152,6 +152,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                         <FormControl>
                           <Input 
                             {...field} 
+                            autoComplete="given-name"
                             placeholder="Juan"
                             data-testid="input-register-firstname"
                             className="h-9 border-input bg-background"
@@ -173,6 +174,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                         <FormControl>
                           <Input 
                             {...field} 
+                            autoComplete="family-name"
                             placeholder="Pérez"
                             data-testid="input-register-lastname"
                             className="h-9 border-input bg-background"
@@ -196,6 +198,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                         <Input 
                           {...field} 
                           type="email"
+                          autoComplete="email"
                           placeholder="Introduce tu dirección de email"
                           data-testid="input-register-email"
                           className="h-9 border-input bg-background"
@@ -218,6 +221,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                         <Input 
                           {...field} 
                           type="tel"
+                          autoComplete="tel"
                           placeholder="+34 600 000 000"
                           data-testid="input-register-phone"
                           className="h-9 border-input bg-background"
@@ -241,6 +245,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                           <Input 
                             {...field} 
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
                             placeholder="Introduce contraseña"
                             data-testid="input-register-password"
                             className="h-9 border-input bg-background pr-12"
@@ -275,6 +280,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                           <Input 
                             {...field} 
                             type={showConfirmPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
                             placeholder="Confirma tu contraseña"
                             data-testid="input-register-confirm-password"
                             className="h-9 border-input bg-background pr-12"

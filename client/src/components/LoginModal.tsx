@@ -100,6 +100,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                         <Input 
                           {...field} 
                           type="email"
+                          autoComplete="username"
                           placeholder="Introduce tu dirección de email"
                           data-testid="input-login-email"
                           className="h-10 border-input bg-background"
@@ -123,6 +124,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                           <Input 
                             {...field} 
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
                             placeholder="Introduce contraseña"
                             data-testid="input-login-password"
                             className="h-10 border-input bg-background pr-12"
