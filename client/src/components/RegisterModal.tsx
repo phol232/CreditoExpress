@@ -8,19 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, Mail, Lock, Eye, EyeOff, User, Phone, CreditCard } from 'lucide-react';
-import { FaGoogle, FaGithub } from 'react-icons/fa';
+import { Mail, Lock, Eye, EyeOff, User, Phone, Star } from 'lucide-react';
+import { FaGoogle } from 'react-icons/fa';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const registerSchema = z.object({
   firstName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   lastName: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
-  dni: z.string().min(8, 'El DNI debe tener al menos 8 caracteres'),
   email: z.string().email('Ingresa un email válido'),
   phone: z.string().min(10, 'El teléfono debe tener al menos 10 dígitos'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string(),
-  acceptTerms: z.boolean().refine(val => val === true, 'Debes aceptar los términos'),
-  acceptPrivacy: z.boolean().refine(val => val === true, 'Debes aceptar la política de privacidad')
+  acceptTerms: z.boolean().refine(val => val === true, 'Debes aceptar los términos')
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
@@ -32,25 +31,25 @@ interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  onRegisterSuccess?: () => void;
 }
 
-export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegisterSuccess }: RegisterModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useLanguage();
   
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
-      dni: '',
       email: '',
       phone: '',
       password: '',
       confirmPassword: '',
-      acceptTerms: false,
-      acceptPrivacy: false
+      acceptTerms: false
     }
   });
 
@@ -63,10 +62,14 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
     
     console.log('Registro exitoso');
     setIsSubmitting(false);
-    onClose();
+    if (onRegisterSuccess) {
+      onRegisterSuccess();
+    } else {
+      onClose();
+    }
   };
 
-  const handleSocialRegister = (provider: 'google' | 'github') => {
+  const handleSocialRegister = (provider: 'google') => {
     console.log(`Register with ${provider}`);
     // Todo: remove mock functionality - implement social registration
     onClose();
@@ -74,129 +77,128 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center flex items-center justify-center gap-2">
-            <UserPlus className="h-6 w-6" />
-            Crear Cuenta
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Únete a MicroCredit y accede a los mejores servicios financieros
-          </DialogDescription>
+      <DialogContent className="max-w-4xl w-full h-[700px] p-0 overflow-hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{t('register.title')}</DialogTitle>
+          <DialogDescription>{t('register.subtitle')}</DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Social Registration Buttons */}
-          <div className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full h-12" 
-              onClick={() => handleSocialRegister('google')}
-              data-testid="button-register-google"
-            >
-              <FaGoogle className="mr-3 h-5 w-5 text-red-500" />
-              Registrarse con Google
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full h-12" 
-              onClick={() => handleSocialRegister('github')}
-              data-testid="button-register-github"
-            >
-              <FaGithub className="mr-3 h-5 w-5" />
-              Registrarse con GitHub
-            </Button>
-          </div>
-          
-          <div className="relative">
-            <Separator />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-background px-2 text-muted-foreground text-sm">o completa tus datos</span>
-            </div>
-          </div>
-          
-          {/* Registration Form */}
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Nombre
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          placeholder="Juan"
-                          data-testid="input-register-firstname"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Apellidos</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          placeholder="Pérez González"
-                          data-testid="input-register-lastname"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+          {/* Left Side - Background Pattern */}
+          <div className="hidden lg:block relative bg-gradient-to-br from-cyan-600 via-blue-700 to-indigo-900 overflow-hidden">
+            {/* Geometric Pattern */}
+            <div className="absolute inset-0">
+              {/* Background shapes */}
+              <div className="absolute top-16 right-12 w-20 h-20 bg-cyan-300/30 rounded-full"></div>
+              <div className="absolute top-40 left-20 w-14 h-14 bg-blue-300/40 rounded-lg rotate-45"></div>
+              <div className="absolute bottom-32 right-10 w-28 h-28 bg-indigo-400/20 rounded-full"></div>
+              <div className="absolute bottom-16 left-16 w-16 h-16 bg-cyan-400/30 rounded-lg rotate-12"></div>
+              
+              {/* Different geometric shapes for register */}
+              <div className="absolute top-1/2 left-1/3 w-0 h-0 border-l-10 border-r-10 border-b-18 border-l-transparent border-r-transparent border-b-cyan-300/40"></div>
+              <div className="absolute bottom-1/2 right-1/4 w-0 h-0 border-l-6 border-r-6 border-b-12 border-l-transparent border-r-transparent border-b-blue-400/30 transform rotate-180"></div>
+              
+              {/* Hexagonal pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="grid grid-cols-6 grid-rows-10 h-full gap-2">
+                  {Array.from({ length: 60 }).map((_, i) => (
+                    <div key={i} className="border border-cyan-300/20 transform rotate-45"></div>
+                  ))}
+                </div>
               </div>
               
-              <FormField
-                control={form.control}
-                name="dni"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      DNI / Cédula
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        placeholder="12345678"
-                        data-testid="input-register-dni"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Floating elements */}
+              <div className="absolute top-1/3 left-1/4 w-8 h-8 bg-yellow-400 rounded-full"></div>
+              <div className="absolute bottom-1/3 right-1/3 w-3 h-12 bg-green-400 rounded-full transform rotate-45"></div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Wave patterns */}
+              <svg className="absolute top-0 right-0 w-full h-24" viewBox="0 0 400 60" fill="none">
+                <path d="M400 0 Q300 30 200 10 T0 40" stroke="rgba(255,255,255,0.1)" strokeWidth="2" fill="none"/>
+                <path d="M400 20 Q250 50 100 20 T-100 10" stroke="rgba(255,255,255,0.05)" strokeWidth="1" fill="none"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Right Side - Form */}
+          <div className="flex flex-col justify-center p-8 lg:p-12 bg-background">
+            {/* Logo/Brand */}
+            <div className="flex items-center mb-8">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-indigo-700 rounded-lg flex items-center justify-center mr-3">
+                <Star className="h-5 w-5 text-white" />
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                {t('register.title')}
+              </h1>
+              <p className="text-muted-foreground">
+                {t('register.subtitle')}
+              </p>
+            </div>
+
+            {/* Form */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-foreground">
+                          Nombre *
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="Juan"
+                            data-testid="input-register-firstname"
+                            className="h-11 border-input bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-foreground">
+                          Apellido *
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="Pérez"
+                            data-testid="input-register-lastname"
+                            className="h-11 border-input bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Email
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        {t('register.email')} *
                       </FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
                           type="email"
-                          placeholder="juan@ejemplo.com"
+                          placeholder="Introduce tu dirección de email"
                           data-testid="input-register-email"
+                          className="h-11 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -209,40 +211,39 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        Teléfono
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        {t('register.phone')} *
                       </FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          placeholder="+52 55 1234 5678"
+                          type="tel"
+                          placeholder="+34 600 000 000"
                           data-testid="input-register-phone"
+                          className="h-11 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        Contraseña
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        {t('register.password')} *
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input 
                             {...field} 
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
+                            placeholder="Introduce contraseña"
                             data-testid="input-register-password"
+                            className="h-11 border-input bg-background pr-12"
                           />
                           <Button
                             type="button"
@@ -250,6 +251,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                             size="icon"
                             className="absolute right-0 top-0 h-full px-3"
                             onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password"
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
@@ -265,14 +267,17 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirmar Contraseña</FormLabel>
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        {t('register.confirm_password')} *
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input 
                             {...field} 
                             type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
+                            placeholder="Confirma tu contraseña"
                             data-testid="input-register-confirm-password"
+                            className="h-11 border-input bg-background pr-12"
                           />
                           <Button
                             type="button"
@@ -280,6 +285,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                             size="icon"
                             className="absolute right-0 top-0 h-full px-3"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            data-testid="button-toggle-confirm-password"
                           >
                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
@@ -289,9 +295,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="space-y-4 pt-4 border-t">
+
                 <FormField
                   control={form.control}
                   name="acceptTerms"
@@ -301,76 +305,69 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          data-testid="checkbox-register-terms"
+                          data-testid="checkbox-accept-terms"
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-normal">
-                          Acepto los{' '}
-                          <button type="button" className="text-primary hover:underline">
-                            términos y condiciones
-                          </button>
+                        <FormLabel className="text-sm">
+                          {t('register.terms')}
                         </FormLabel>
-                        <FormMessage />
                       </div>
                     </FormItem>
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="acceptPrivacy"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-register-privacy"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-normal">
-                          Acepto la{' '}
-                          <button type="button" className="text-primary hover:underline">
-                            política de privacidad
-                          </button>
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+                  disabled={isSubmitting}
+                  data-testid="button-register-submit"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      {t('common.loading')}
+                    </div>
+                  ) : (
+                    t('register.create_account')
                   )}
-                />
+                </Button>
+              </form>
+            </Form>
+
+            {/* Divider */}
+            <div className="relative my-4">
+              <Separator />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-background px-4 text-muted-foreground text-sm">
+                  {t('register.or')}
+                </span>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-                data-testid="button-register-submit"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    Creando cuenta...
-                  </div>
-                ) : (
-                  'Crear Cuenta'
-                )}
-              </Button>
-            </form>
-          </Form>
-          
-          <div className="text-center text-sm text-muted-foreground">
-            ¿Ya tienes cuenta?{' '}
+            </div>
+
+            {/* Social Register */}
             <Button 
-              variant="ghost" 
-              className="p-0 text-primary h-auto"
-              onClick={onSwitchToLogin}
-              data-testid="button-switch-to-login"
+              variant="outline" 
+              className="w-full h-11 hover-elevate mb-4" 
+              onClick={() => handleSocialRegister('google')}
+              data-testid="button-register-google"
             >
-              Inicia sesión aquí
+              <FaGoogle className="mr-3 h-4 w-4 text-red-500" />
+              {t('register.google')}
             </Button>
+
+            {/* Login Link */}
+            <div className="text-center text-sm text-muted-foreground">
+              {t('register.have_account')}{' '}
+              <Button 
+                variant="ghost" 
+                className="p-0 text-primary h-auto font-medium hover:underline"
+                onClick={onSwitchToLogin}
+                data-testid="button-switch-to-login"
+              >
+                {t('register.login_here')}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

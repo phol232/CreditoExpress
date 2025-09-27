@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import RegistrationForm from '@/components/RegistrationForm';
 import VerificationForm from '@/components/VerificationForm';
 import PreApplicationForm from '@/components/PreApplicationForm';
+import RegisterModal from '@/components/RegisterModal';
 
 type ApplicationStep = 'registration' | 'verification' | 'pre-application' | 'complete';
 
@@ -19,6 +20,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
   const [currentStep, setCurrentStep] = useState<ApplicationStep>('registration');
   const [userEmail, setUserEmail] = useState('juan@ejemplo.com');
   const [userPhone, setUserPhone] = useState('+52 55 1234 5678');
+  const [isUserRegistered, setIsUserRegistered] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const steps = [
     { id: 'registration', title: 'Registro', description: 'Crea tu cuenta' },
@@ -51,12 +54,45 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
 
   const handleClose = () => {
     setCurrentStep('registration');
+    setIsUserRegistered(false);
+    setShowRegisterModal(false);
     onClose();
+  };
+
+  const handleRegisterComplete = () => {
+    setIsUserRegistered(true);
+    setShowRegisterModal(false);
+    setCurrentStep('verification');
+  };
+
+  const handleRegisterRequired = () => {
+    setShowRegisterModal(true);
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 'registration':
+        if (!isUserRegistered) {
+          return (
+            <Card className="w-full max-w-md mx-auto text-center">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-bold text-foreground mb-4">
+                  ¡Bienvenido a MicroCredit!
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Para solicitar un crédito, necesitas crear una cuenta primero. Es rápido y seguro.
+                </p>
+                <Button 
+                  onClick={handleRegisterRequired}
+                  data-testid="button-start-registration"
+                  className="w-full"
+                >
+                  Crear Cuenta
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        }
         return <RegistrationForm />;
       case 'verification':
         return <VerificationForm contactType="email" contactValue={userEmail} />;
@@ -165,6 +201,16 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
           )}
         </div>
       </DialogContent>
+      
+      <RegisterModal 
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={() => {
+          setShowRegisterModal(false);
+          // Could implement login modal here if needed
+        }}
+        onRegisterSuccess={handleRegisterComplete}
+      />
     </Dialog>
   );
 }
