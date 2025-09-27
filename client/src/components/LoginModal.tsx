@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { FaGoogle, FaGithub } from 'react-icons/fa';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const loginSchema = z.object({
   email: z.string().email('Ingresa un email válido'),
@@ -26,6 +27,7 @@ interface LoginModalProps {
 export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useLanguage();
   
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -55,42 +57,44 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Iniciar Sesión</DialogTitle>
-          <DialogDescription className="text-center">
-            Accede a tu cuenta de MicroCredit
+      <DialogContent className="sm:max-w-md max-w-sm mx-auto">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            {t('login.title')}
+          </DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground">
+            {t('login.subtitle')}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-6 p-1">
           {/* Social Login Buttons */}
           <div className="space-y-3">
             <Button 
               variant="outline" 
-              className="w-full h-12" 
+              className="w-full h-12 hover-elevate border-2" 
               onClick={() => handleSocialLogin('google')}
               data-testid="button-login-google"
             >
               <FaGoogle className="mr-3 h-5 w-5 text-red-500" />
-              Continuar con Google
+              {t('login.google')}
             </Button>
             
             <Button 
               variant="outline" 
-              className="w-full h-12" 
+              className="w-full h-12 hover-elevate border-2" 
               onClick={() => handleSocialLogin('github')}
               data-testid="button-login-github"
             >
               <FaGithub className="mr-3 h-5 w-5" />
-              Continuar con GitHub
+              {t('login.github')}
             </Button>
           </div>
           
           <div className="relative">
-            <Separator />
+            <Separator className="bg-border" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-background px-2 text-muted-foreground text-sm">o</span>
+              <span className="bg-background px-4 text-muted-foreground text-sm font-medium">{t('login.or')}</span>
             </div>
           </div>
           
@@ -102,9 +106,9 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email
+                    <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                      <Mail className="h-4 w-4 text-primary" />
+                      {t('login.email')}
                     </FormLabel>
                     <FormControl>
                       <Input 
@@ -112,6 +116,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                         type="email"
                         placeholder="tu@email.com"
                         data-testid="input-login-email"
+                        className="h-11 border-2 focus:border-primary"
                       />
                     </FormControl>
                     <FormMessage />
@@ -124,9 +129,9 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Contraseña
+                    <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                      <Lock className="h-4 w-4 text-primary" />
+                      {t('login.password')}
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
@@ -135,6 +140,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
                           data-testid="input-login-password"
+                          className="h-11 border-2 focus:border-primary pr-12"
                         />
                         <Button
                           type="button"
@@ -154,38 +160,38 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               />
               
               <div className="text-right">
-                <Button variant="ghost" className="p-0 text-sm text-primary h-auto">
-                  ¿Olvidaste tu contraseña?
+                <Button variant="ghost" className="p-0 text-sm text-primary h-auto font-medium hover:underline">
+                  {t('login.forgot_password')}
                 </Button>
               </div>
               
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-12 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white font-semibold" 
                 disabled={isSubmitting}
                 data-testid="button-login-submit"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    Iniciando sesión...
+                    {t('common.loading')}
                   </div>
                 ) : (
-                  'Iniciar Sesión'
+                  t('login.sign_in')
                 )}
               </Button>
             </form>
           </Form>
           
           <div className="text-center text-sm text-muted-foreground">
-            ¿No tienes cuenta?{' '}
+            {t('login.no_account')}{' '}
             <Button 
               variant="ghost" 
-              className="p-0 text-primary h-auto"
+              className="p-0 text-primary h-auto font-medium hover:underline"
               onClick={onSwitchToRegister}
               data-testid="button-switch-to-register"
             >
-              Regístrate aquí
+              {t('login.register_here')}
             </Button>
           </div>
         </div>

@@ -4,12 +4,16 @@ import { Menu, X, User } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 import RegisterModal from '@/components/RegisterModal';
 import ApplicationModal from '@/components/ApplicationModal';
+import ThemeToggle from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b">
@@ -24,35 +28,38 @@ export default function Header() {
           <nav className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <a href="#inicio" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium">
-                Inicio
+                {t('header.inicio')}
               </a>
               <a href="#servicios" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium">
-                Servicios
+                {t('header.servicios')}
               </a>
               <a href="#proceso" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium">
-                Proceso
+                {t('header.proceso')}
               </a>
               <a href="#contacto" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium">
-                Contacto
+                {t('header.contacto')}
               </a>
             </div>
           </nav>
           
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageSelector />
+            <div className="h-6 w-px bg-border mx-2" />
             <Button 
               variant="ghost"
               onClick={() => setIsLoginOpen(true)}
               data-testid="button-login"
             >
               <User className="h-4 w-4 mr-2" />
-              Iniciar Sesión
+              {t('header.login')}
             </Button>
             <Button 
               data-testid="button-iniciar-solicitud" 
-              className="bg-gradient-to-r from-purple-deep to-purple-medium"
+              className="bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-700 hover:to-purple-900"
               onClick={() => setIsApplicationOpen(true)}
             >
-              Iniciar Solicitud
+              {t('header.apply')}
             </Button>
           </div>
           
@@ -72,18 +79,22 @@ export default function Header() {
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-t">
               <a href="#inicio" className="text-foreground hover:text-primary block px-3 py-2 text-base font-medium">
-                Inicio
+                {t('header.inicio')}
               </a>
               <a href="#servicios" className="text-foreground hover:text-primary block px-3 py-2 text-base font-medium">
-                Servicios
+                {t('header.servicios')}
               </a>
               <a href="#proceso" className="text-foreground hover:text-primary block px-3 py-2 text-base font-medium">
-                Proceso
+                {t('header.proceso')}
               </a>
               <a href="#contacto" className="text-foreground hover:text-primary block px-3 py-2 text-base font-medium">
-                Contacto
+                {t('header.contacto')}
               </a>
               <div className="px-3 py-2 space-y-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <ThemeToggle />
+                  <LanguageSelector />
+                </div>
                 <Button 
                   variant="ghost"
                   className="w-full justify-start"
@@ -91,14 +102,14 @@ export default function Header() {
                   data-testid="button-login-mobile"
                 >
                   <User className="h-4 w-4 mr-2" />
-                  Iniciar Sesión
+                  {t('header.login')}
                 </Button>
                 <Button 
                   data-testid="button-iniciar-solicitud-mobile" 
-                  className="w-full bg-gradient-to-r from-purple-deep to-purple-medium"
+                  className="w-full bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-700 hover:to-purple-900"
                   onClick={() => setIsApplicationOpen(true)}
                 >
-                  Iniciar Solicitud
+                  {t('header.apply')}
                 </Button>
               </div>
             </div>
