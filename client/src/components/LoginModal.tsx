@@ -60,7 +60,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[90vh] sm:h-[85vh] min-h-[500px] sm:min-h-[650px] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full max-h-[85vh] h-[85vh] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('login.title')}</DialogTitle>
           <DialogDescription>{t('login.subtitle')}</DialogDescription>
@@ -133,7 +133,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >

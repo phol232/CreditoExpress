@@ -77,7 +77,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[90vh] sm:h-[85vh] min-h-[600px] sm:min-h-[800px] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('register.title')}</DialogTitle>
           <DialogDescription>{t('register.subtitle')}</DialogDescription>
@@ -254,7 +254,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >
@@ -289,7 +289,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             data-testid="button-toggle-confirm-password"
                           >
