@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
+import LoginModal from '@/components/LoginModal';
+import RegisterModal from '@/components/RegisterModal';
+import ApplicationModal from '@/components/ApplicationModal';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b">
@@ -32,11 +38,19 @@ export default function Header() {
             </div>
           </nav>
           
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-3">
+            <Button 
+              variant="ghost"
+              onClick={() => setIsLoginOpen(true)}
+              data-testid="button-login"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Iniciar Sesión
+            </Button>
             <Button 
               data-testid="button-iniciar-solicitud" 
               className="bg-gradient-to-r from-purple-deep to-purple-medium"
-              onClick={() => window.location.href = '/solicitud'}
+              onClick={() => setIsApplicationOpen(true)}
             >
               Iniciar Solicitud
             </Button>
@@ -69,11 +83,20 @@ export default function Header() {
               <a href="#contacto" className="text-foreground hover:text-primary block px-3 py-2 text-base font-medium">
                 Contacto
               </a>
-              <div className="px-3 py-2">
+              <div className="px-3 py-2 space-y-2">
+                <Button 
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => setIsLoginOpen(true)}
+                  data-testid="button-login-mobile"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Iniciar Sesión
+                </Button>
                 <Button 
                   data-testid="button-iniciar-solicitud-mobile" 
                   className="w-full bg-gradient-to-r from-purple-deep to-purple-medium"
-                  onClick={() => window.location.href = '/solicitud'}
+                  onClick={() => setIsApplicationOpen(true)}
                 >
                   Iniciar Solicitud
                 </Button>
@@ -82,6 +105,29 @@ export default function Header() {
           </div>
         )}
       </div>
+      
+      <LoginModal 
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSwitchToRegister={() => {
+          setIsLoginOpen(false);
+          setIsRegisterOpen(true);
+        }}
+      />
+      
+      <RegisterModal 
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+        onSwitchToLogin={() => {
+          setIsRegisterOpen(false);
+          setIsLoginOpen(true);
+        }}
+      />
+      
+      <ApplicationModal 
+        isOpen={isApplicationOpen}
+        onClose={() => setIsApplicationOpen(false)}
+      />
     </header>
   );
 }
