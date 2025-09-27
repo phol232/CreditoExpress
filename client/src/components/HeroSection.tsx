@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Clock, CheckCircle } from 'lucide-react';
+import ApplicationModal from '@/components/ApplicationModal';
 import heroImage from '@assets/generated_images/Hero_background_gradient_cc8df848.png';
 import mobileImage from '@assets/generated_images/Mobile_app_interface_mockup_12e7b423.png';
 
 export default function HeroSection() {
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false);
+  
   const handleGetStarted = () => {
     console.log('Iniciar solicitud clicked');
-    window.location.href = '/solicitud';
+    setIsApplicationOpen(true);
     // Todo: remove mock functionality - implement actual form navigation
   };
 
@@ -96,6 +100,11 @@ export default function HeroSection() {
           </div>
         </div>
       </div>
+      
+      <ApplicationModal 
+        isOpen={isApplicationOpen}
+        onClose={() => setIsApplicationOpen(false)}
+      />
     </section>
   );
 }
