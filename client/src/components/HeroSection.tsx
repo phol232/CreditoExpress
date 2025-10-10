@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Clock, CheckCircle } from 'lucide-react';
 import ApplicationModal from '@/components/ApplicationModal';
 import { useLanguage } from '@/contexts/LanguageContext';
-import heroImage from '@assets/generated_images/Hero_background_gradient_cc8df848.png';
-import mobileImage from '@assets/generated_images/Mobile_app_interface_mockup_12e7b423.png';
+// import heroImage from '@assets/generated_images/Hero_background_gradient_cc8df848.png';
+// import mobileImage from '@assets/generated_images/Mobile_app_interface_mockup_12e7b423.png';
 
 export default function HeroSection() {
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
@@ -18,15 +18,8 @@ export default function HeroSection() {
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Background with gradient overlay */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Financial background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 to-purple-700/80"></div>
-      </div>
+      {/* Background with gradient */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-purple-800 to-purple-700"></div>
       
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         {/* Left content */}
@@ -77,14 +70,13 @@ export default function HeroSection() {
           </div>
         </div>
         
-        {/* Right content - Mobile mockup */}
+        {/* Right content - Placeholder for mobile mockup */}
         <div className="flex justify-center lg:justify-end">
-          <div className="relative">
-            <img 
-              src={mobileImage} 
-              alt="Aplicación móvil MicroCredit" 
-              className="w-80 md:w-96 h-auto drop-shadow-2xl"
-            />
+          <div className="relative w-80 md:w-96 h-[600px] bg-white/10 backdrop-blur-sm rounded-3xl border-4 border-white/20 shadow-2xl flex items-center justify-center">
+            <div className="text-center text-white/60">
+              <Shield className="h-24 w-24 mx-auto mb-4" />
+              <p className="text-lg">App Móvil</p>
+            </div>
             {/* Floating elements */}
             <div className="absolute -top-4 -left-4 bg-white/20 backdrop-blur-sm rounded-lg p-3 text-white text-sm">
               <div className="flex items-center gap-2">
@@ -95,7 +87,7 @@ export default function HeroSection() {
             <div className="absolute -bottom-4 -right-4 bg-white/20 backdrop-blur-sm rounded-lg p-3 text-white text-sm">
               <div className="flex items-center gap-2">
                 <span>Tasa desde 12%</span>
-                <div className="w-3 h-3 bg-purple-light rounded-full"></div>
+                <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
               </div>
             </div>
           </div>
