@@ -40,6 +40,34 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Ruta de prueba
+app.get("/", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>CreditoExpress API</title></head>
+      <body>
+        <h1>✅ CreditoExpress Backend API</h1>
+        <p>El servidor está funcionando correctamente.</p>
+        <p>Endpoints disponibles:</p>
+        <ul>
+          <li>POST /api/auth/send-verification-code</li>
+          <li>POST /api/auth/verify-code</li>
+          <li>GET /api/auth/has-valid-code/:email</li>
+        </ul>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/api", (req, res) => {
+  res.json({ 
+    message: "CreditoExpress API", 
+    status: "online",
+    version: "1.0.0" 
+  });
+});
+
 // Enviar código de verificación
 app.post("/api/auth/send-verification-code", async (req, res) => {
   try {
