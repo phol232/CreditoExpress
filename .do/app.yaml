@@ -1,0 +1,59 @@
+name: creditoexpress
+region: nyc
+
+# Frontend (React + Vite)
+static_sites:
+  - name: frontend
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: tu-usuario/tu-repo
+    source_dir: apps/portal/CreditoExpress/client
+    build_command: npm install && npm run build
+    output_dir: dist
+    routes:
+      - path: /
+    envs:
+      - key: VITE_FIREBASE_API_KEY
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_API_KEY}
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_AUTH_DOMAIN}
+      - key: VITE_FIREBASE_PROJECT_ID
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_PROJECT_ID}
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_STORAGE_BUCKET}
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_MESSAGING_SENDER_ID}
+      - key: VITE_FIREBASE_APP_ID
+        scope: BUILD_TIME
+        value: ${VITE_FIREBASE_APP_ID}
+
+# Backend (Node.js + Express)
+services:
+  - name: backend
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: tu-usuario/tu-repo
+    source_dir: apps/portal/CreditoExpress/server
+    build_command: npm install
+    run_command: node index.js
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 3000
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: BREVO_API_KEY
+        value: ${BREVO_API_KEY}
+        type: SECRET
+      - key: PORT
+        value: "3000"
