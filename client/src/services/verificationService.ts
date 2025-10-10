@@ -6,6 +6,7 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { getApiUrl } from '../config/api';
 
 interface VerificationCode {
     code: string;
@@ -25,8 +26,7 @@ class VerificationService {
         microfinancieraId?: string
     ): Promise<{ success: boolean; message: string; expiresIn?: number }> {
         try {
-            // Usar ruta relativa (mismo servidor)
-            const response = await fetch('/api/auth/send-verification-code', {
+            const response = await fetch(getApiUrl('api/auth/send-verification-code'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -77,8 +77,7 @@ class VerificationService {
         microfinancieraId?: string
     ): Promise<{ success: boolean; message: string }> {
         try {
-            // Usar ruta relativa (mismo servidor)
-            const response = await fetch('/api/auth/verify-code', {
+            const response = await fetch(getApiUrl('api/auth/verify-code'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
