@@ -1,6 +1,3 @@
-import { db } from '../db';
-import { sql } from 'drizzle-orm';
-
 interface VerificationCode {
   email: string;
   code: string;
@@ -14,7 +11,8 @@ const verificationCodes = new Map<string, VerificationCode>();
 // Limpiar códigos expirados cada 5 minutos
 setInterval(() => {
   const now = new Date();
-  for (const [email, data] of verificationCodes.entries()) {
+  const entries = Array.from(verificationCodes.entries());
+  for (const [email, data] of entries) {
     if (data.expiresAt < now) {
       verificationCodes.delete(email);
     }
