@@ -67,7 +67,7 @@ async function sendBrevoEmail(email: string, code: string) {
 app.use(cors());
 app.use(express.json());
 
-const verificationCodes = new Map<string, { code: string; expiresAt: number }>();
+const verificationCodes = new Map<string, { code: string; expiresAt: number; lastSent?: number }>();
 
 app.get("/", (req, res) => {
   res.send(`
@@ -104,11 +104,22 @@ app.post("/api/auth/send-verification-code", async (req, res) => {
       });
     }
 
+    // Verificar si ya se envió un código recientemente (últimos 60 segundos)
+    const existing = verificationCodes.get(email);
+    if (existing && existing.lastSent && (Date.now() - existing.lastSent) < 60000) {
+      console.log(`⏱️ Código ya enviado recientemente para ${email}`);
+      return res.json({
+        success: true,
+        message: "Código de verificación ya enviado. Por favor espera un minuto antes de solicitar otro."
+      });
+    }
+
     const code = generateCode();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutos
+    const lastSent = Date.now();
 
     // Guardar código
-    verificationCodes.set(email, { code, expiresAt });
+    verificationCodes.set(email, { code, expiresAt, lastSent });
 
     console.log(`📧 Código generado para ${email}: ${code}`);
 
