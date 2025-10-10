@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function HeroSection() {
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const { t } = useLanguage();
-  
+
   const handleGetStarted = () => {
     console.log('Iniciar solicitud clicked');
     setIsApplicationOpen(true);
@@ -20,7 +20,7 @@ export default function HeroSection() {
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background with gradient */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-purple-800 to-purple-700"></div>
-      
+
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         {/* Left content */}
         <div className="text-white">
@@ -28,14 +28,14 @@ export default function HeroSection() {
             {t('hero.title1')}{' '}
             <span className="text-purple-300">{t('hero.title2')}</span>
           </h1>
-          
+
           <p className="text-xl md:text-2xl mb-8 text-purple-100/90">
             {t('hero.subtitle')}
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={handleGetStarted}
               data-testid="button-get-started"
               className="bg-white text-purple-900 hover:bg-purple-50 hover:text-purple-900 font-semibold px-8 py-4 shadow-lg hover:shadow-xl transition-all"
@@ -43,8 +43,8 @@ export default function HeroSection() {
               {t('hero.apply_now')}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               data-testid="button-learn-more"
               className="border-white text-white hover:bg-white hover:text-purple-900 backdrop-blur-sm bg-white/10 font-semibold px-8 py-4 transition-all"
@@ -52,7 +52,7 @@ export default function HeroSection() {
               {t('hero.learn_more')}
             </Button>
           </div>
-          
+
           {/* Trust indicators */}
           <div className="flex flex-wrap gap-6 text-sm text-purple-200/90">
             <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export default function HeroSection() {
             </div>
           </div>
         </div>
-        
+
         {/* Right content - Placeholder for mobile mockup */}
         <div className="flex justify-center lg:justify-end">
           <div className="relative w-80 md:w-96 h-[600px] bg-white/10 backdrop-blur-sm rounded-3xl border-4 border-white/20 shadow-2xl flex items-center justify-center">
@@ -93,8 +93,8 @@ export default function HeroSection() {
           </div>
         </div>
       </div>
-      
-      <ApplicationModal 
+
+      <ApplicationModal
         isOpen={isApplicationOpen}
         onClose={() => setIsApplicationOpen(false)}
       />

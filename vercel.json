@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --if-present",
+  "buildCommand": "vite build",
   "outputDirectory": "client/dist",
   "installCommand": "npm install --legacy-peer-deps"
 }
