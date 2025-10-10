@@ -1,44 +1,14 @@
-import 'dotenv/config';
 import express from "express";
 import cors from "cors";
-import { sendVerificationCode } from "../services/emailService";
-import { 
-  generateVerificationCode, 
-  storeVerificationCode, 
-  verifyCode,
-  hasValidCode 
-} from "../services/verificationService";
 
 const app = express();
 
-// CORS configuration - permite requests desde el frontend
-const allowedOrigins = [
-  process.env.VITE_APP_URL,
-  'http://localhost:5173',
-  'http://localhost:5000',
-  'https://credito-express.vercel.app',
-  'https://credito-express-phi.vercel.app',
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir requests sin origin (como mobile apps o curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin) || origin?.includes('vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Permitir todos por ahora para debugging
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-app.options('*', cors());
+// CORS - permitir todos los orígenes por ahora
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// In-memory storage para códigos de verificación
+const verificationCodes = new Map<string, { code: string; expiresAt: number }>();
 
 // Ruta de prueba
 app.get("/", (req, res) => {
@@ -53,20 +23,16 @@ app.get("/", (req, res) => {
         <ul>
           <li>POST /api/auth/send-verification-code</li>
           <li>POST /api/auth/verify-code</li>
-          <li>GET /api/auth/has-valid-code/:email</li>
         </ul>
       </body>
     </html>
   `);
 });
 
-app.get("/api", (req, res) => {
-  res.json({ 
-    message: "CreditoExpress API", 
-    status: "online",
-    version: "1.0.0" 
-  });
-});
+// Generar código de 6 dígitos
+function generateCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 // Enviar código de verificación
 app.post("/api/auth/send-verification-code", async (req, res) => {
@@ -80,47 +46,36 @@ app.post("/api/auth/send-verification-code", async (req, res) => {
       });
     }
 
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email inválido" 
-      });
-    }
+    const code = generateCode();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutos
 
-    // Generar código
-    const code = generateVerificationCode();
-    
-    console.log(`📧 Enviando código ${code} a: ${email}`);
-    
     // Guardar código
-    storeVerificationCode(email, code);
+    verificationCodes.set(email, { code, expiresAt });
 
-    // Enviar email
-    await sendVerificationCode(email, code);
+    console.log(`📧 Código generado para ${email}: ${code}`);
+
+    // TODO: Aquí iría el envío de email con Brevo
+    // Por ahora solo retornamos éxito
     
-    console.log(`✅ Código enviado exitosamente a: ${email}`);
-
     res.json({ 
       success: true, 
-      message: "Código de verificación enviado" 
+      message: "Código de verificación enviado",
+      // Solo para testing, remover en producción:
+      debug: { code }
     });
   } catch (error) {
-    console.error("Error sending verification code:", error);
+    console.error("Error:", error);
     res.status(500).json({ 
       success: false, 
-      message: "Error al enviar el código de verificación" 
+      message: "Error al enviar el código" 
     });
   }
 });
 
 // Verificar código
-app.post("/api/auth/verify-code", async (req, res) => {
+app.post("/api/auth/verify-code", (req, res) => {
   try {
     const { email, code } = req.body;
-
-    console.log(`🔍 Verificando código para: ${email}, código recibido: ${code}`);
 
     if (!email || !code) {
       return res.status(400).json({ 
@@ -129,48 +84,43 @@ app.post("/api/auth/verify-code", async (req, res) => {
       });
     }
 
-    const result = verifyCode(email, code);
-    
-    console.log(`📝 Resultado de verificación:`, result);
-    
-    if (result.success) {
-      console.log(`✅ Código verificado correctamente para: ${email}`);
-      res.json(result);
-    } else {
-      console.log(`❌ Código incorrecto para: ${email} - ${result.message}`);
-      res.status(400).json(result);
+    const stored = verificationCodes.get(email);
+
+    if (!stored) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Código no encontrado o expirado" 
+      });
     }
+
+    if (Date.now() > stored.expiresAt) {
+      verificationCodes.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        message: "El código ha expirado" 
+      });
+    }
+
+    if (stored.code !== code) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Código incorrecto" 
+      });
+    }
+
+    // Código correcto
+    verificationCodes.delete(email);
+    res.json({ 
+      success: true, 
+      message: "Código verificado correctamente" 
+    });
   } catch (error) {
-    console.error("Error verifying code:", error);
+    console.error("Error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error al verificar el código" 
     });
   }
-});
-
-// Verificar si hay un código válido
-app.get("/api/auth/has-valid-code/:email", async (req, res) => {
-  try {
-    const { email } = req.params;
-    const hasCode = hasValidCode(email);
-    
-    res.json({ hasValidCode: hasCode });
-  } catch (error) {
-    console.error("Error checking valid code:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Error al verificar el código" 
-    });
-  }
-});
-
-// Error handler
-app.use((err: any, _req: any, res: any, _next: any) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error('Error:', err);
-  res.status(status).json({ message });
 });
 
 export default app;
