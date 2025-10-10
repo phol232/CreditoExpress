@@ -10,7 +10,7 @@ const allowedOrigins = [
   process.env.VITE_APP_URL,
   'http://localhost:5173',
   'http://localhost:5000',
-  'https://credito-express-phi.vercel.app/', 
+  'https://credito-express-phi.vercel.app', 
 ].filter(Boolean);
 
 app.use(cors({
