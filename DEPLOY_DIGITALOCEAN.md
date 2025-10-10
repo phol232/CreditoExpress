@@ -15,9 +15,9 @@
 
 ### Paso 3: Configurar el Backend (Node.js)
 1. DigitalOcean detectará automáticamente Node.js
-2. Configura:
-   - **Name**: `creditoexpress-backend`
-   - **Source Directory**: `apps/portal/CreditoExpress/server`
+2. **IMPORTANTE**: Edita la configuración detectada:
+   - **Name**: `backend`
+   - **Source Directory**: `/server` (relativo a la raíz del repo)
    - **Build Command**: `npm install`
    - **Run Command**: `node index.js`
    - **HTTP Port**: `3000`
@@ -26,11 +26,15 @@
 ### Paso 4: Configurar el Frontend (Static Site)
 1. Click en **"Add Component"** → **"Static Site"**
 2. Configura:
-   - **Name**: `creditoexpress-frontend`
-   - **Source Directory**: `apps/portal/CreditoExpress/client`
+   - **Name**: `frontend`
+   - **Source Directory**: `/client` (relativo a la raíz del repo)
    - **Build Command**: `npm install && npm run build`
    - **Output Directory**: `dist`
    - **HTTP Routes**: `/`
+
+**NOTA**: Si tu repositorio tiene la estructura `apps/portal/CreditoExpress/`, entonces usa:
+- Backend Source Directory: `/apps/portal/CreditoExpress/server`
+- Frontend Source Directory: `/apps/portal/CreditoExpress/client`
 
 ### Paso 5: Agregar Variables de Entorno
 
