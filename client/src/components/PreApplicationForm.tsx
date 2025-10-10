@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, Upload, MapPin, DollarSign, User, Briefcase } from 'lucide-react';
+import { FileText, Upload, MapPin, DollarSign, User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { loanApplicationService } from '@/services/loanApplicationService';
 
 const preApplicationSchema = z.object({
   loanAmount: z.string().min(1, 'Debes especificar el monto'),
@@ -24,11 +26,20 @@ const preApplicationSchema = z.object({
 
 type PreApplicationForm = z.infer<typeof preApplicationSchema>;
 
-export default function PreApplicationForm() {
+interface PreApplicationFormProps {
+  onSuccess?: () => void;
+}
+
+export default function PreApplicationForm({ onSuccess }: PreApplicationFormProps) {
+  const { user, microfinancieraId, profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
-  
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasPendingApplication, setHasPendingApplication] = useState(false);
+  const [isCheckingApplications, setIsCheckingApplications] = useState(true);
+
   const form = useForm<PreApplicationForm>({
     resolver: zodResolver(preApplicationSchema),
     defaultValues: {
@@ -42,17 +53,65 @@ export default function PreApplicationForm() {
     }
   });
 
+  // Verificar si ya tiene una solicitud pendiente
+  useEffect(() => {
+    const checkPendingApplications = async () => {
+      if (!user || !microfinancieraId) return;
+
+      setIsCheckingApplications(true);
+      try {
+        const applications = await loanApplicationService.getUserApplications(user.uid, microfinancieraId);
+        const pending = applications.some(app => app.status === 'pending' || app.status === 'in_review');
+        setHasPendingApplication(pending);
+      } catch (error) {
+        console.error('Error checking applications:', error);
+      } finally {
+        setIsCheckingApplications(false);
+      }
+    };
+
+    checkPendingApplications();
+  }, [user, microfinancieraId]);
+
   const onSubmit = async (data: PreApplicationForm) => {
+    if (!user || !microfinancieraId || !profile?.email) {
+      setErrorMessage('Usuario no autenticado');
+      return;
+    }
+
     setIsSubmitting(true);
-    console.log('Pre-application data:', data);
-    console.log('Uploaded files:', uploadedFiles);
-    // Todo: remove mock functionality - implement actual pre-application API call
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    console.log('Pre-solicitud enviada exitosamente');
-    setIsSubmitting(false);
+    setErrorMessage(null);
+
+    try {
+      // Crear solicitud en Firebase
+      const result = await loanApplicationService.createApplication(
+        user.uid,
+        microfinancieraId,
+        profile.email,
+        {
+          loanAmount: parseFloat(data.loanAmount),
+          loanPurpose: data.loanPurpose,
+          monthlyIncome: parseFloat(data.monthlyIncome),
+          employmentType: data.employmentType,
+          additionalInfo: data.additionalInfo,
+          location: userLocation || undefined
+        }
+      );
+
+      if (result.success) {
+        console.log('✅ Solicitud creada:', result.applicationId);
+
+        // Llamar callback de éxito
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      setErrorMessage(error.message || 'Error al enviar la solicitud');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +121,7 @@ export default function PreApplicationForm() {
       const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
       return isValidType && isValidSize;
     });
-    
+
     setUploadedFiles(prev => [...prev, ...validFiles]);
     console.log('Files uploaded:', validFiles);
   };
@@ -80,6 +139,10 @@ export default function PreApplicationForm() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         console.log('Location granted:', position.coords);
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
         setLocationPermission('granted');
       },
       (error) => {
@@ -88,6 +151,38 @@ export default function PreApplicationForm() {
       }
     );
   };
+
+  if (isCheckingApplications) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Verificando solicitudes...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (hasPendingApplication) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="text-center py-12">
+          <div className="inline-flex p-4 rounded-full bg-yellow-100 text-yellow-600 mb-4">
+            <Clock className="h-8 w-8" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Ya tienes una solicitud en proceso</h3>
+          <p className="text-muted-foreground mb-6">
+            Actualmente tienes una solicitud pendiente de revisión. Por favor espera a que sea procesada antes de enviar una nueva.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Puedes ver el estado de tu solicitud en "Mis Solicitudes"
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -100,8 +195,14 @@ export default function PreApplicationForm() {
           Completa la información básica para iniciar tu evaluación crediticia
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
+        {errorMessage && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-4">
+            {errorMessage}
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Financial Information */}
@@ -110,7 +211,7 @@ export default function PreApplicationForm() {
                 <DollarSign className="h-5 w-5" />
                 Información Financiera
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -121,8 +222,8 @@ export default function PreApplicationForm() {
                       <FormControl>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            {...field} 
+                          <Input
+                            {...field}
                             placeholder="50,000"
                             className="pl-10"
                             data-testid="input-loan-amount"
@@ -133,7 +234,7 @@ export default function PreApplicationForm() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="monthlyIncome"
@@ -143,8 +244,8 @@ export default function PreApplicationForm() {
                       <FormControl>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            {...field} 
+                          <Input
+                            {...field}
                             placeholder="25,000"
                             className="pl-10"
                             data-testid="input-monthly-income"
@@ -156,7 +257,7 @@ export default function PreApplicationForm() {
                   )}
                 />
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -183,7 +284,7 @@ export default function PreApplicationForm() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="employmentType"
@@ -218,7 +319,7 @@ export default function PreApplicationForm() {
                 <User className="h-5 w-5" />
                 Información Adicional
               </h3>
-              
+
               <FormField
                 control={form.control}
                 name="additionalInfo"
@@ -226,8 +327,8 @@ export default function PreApplicationForm() {
                   <FormItem>
                     <FormLabel>Información Adicional (Opcional)</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        {...field} 
+                      <Textarea
+                        {...field}
                         placeholder="Cuéntanos sobre tu situación financiera, experiencia crediticia, o cualquier información relevante..."
                         className="min-h-[100px]"
                         data-testid="textarea-additional-info"
@@ -245,7 +346,7 @@ export default function PreApplicationForm() {
                 <Upload className="h-5 w-5" />
                 Documentos de Respaldo
               </h3>
-              
+
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                 <input
                   type="file"
@@ -270,7 +371,7 @@ export default function PreApplicationForm() {
                   </div>
                 </label>
               </div>
-              
+
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Archivos subidos:</p>
@@ -283,9 +384,9 @@ export default function PreApplicationForm() {
                           {(file.size / 1024 / 1024).toFixed(1)} MB
                         </Badge>
                       </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
+                      <Button
+                        type="button"
+                        variant="ghost"
                         size="sm"
                         onClick={() => removeFile(index)}
                         data-testid={`button-remove-file-${index}`}
@@ -304,7 +405,7 @@ export default function PreApplicationForm() {
                 <MapPin className="h-5 w-5" />
                 Ubicación (Opcional)
               </h3>
-              
+
               <FormField
                 control={form.control}
                 name="acceptGeolocation"
@@ -340,10 +441,10 @@ export default function PreApplicationForm() {
                 )}
               />
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
+
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isSubmitting}
               data-testid="button-submit-pre-application"
             >
@@ -361,7 +462,7 @@ export default function PreApplicationForm() {
             </Button>
           </form>
         </Form>
-        
+
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>Tu pre-solicitud será evaluada en un máximo de 24 horas hábiles</p>
         </div>

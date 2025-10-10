@@ -11,18 +11,19 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff, User, Phone, Star } from 'lucide-react';
 import { FaGoogle } from 'react-icons/fa';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { authService } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+import { MicrofinancieraSelector } from './MicrofinancieraSelector';
+import { EmailVerificationStep } from './EmailVerificationStep';
 
 const registerSchema = z.object({
   firstName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   lastName: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
+  dni: z.string().min(8, 'El DNI debe tener al menos 8 dígitos').max(12, 'El DNI no puede tener más de 12 dígitos'),
   email: z.string().email('Ingresa un email válido'),
   phone: z.string().min(10, 'El teléfono debe tener al menos 10 dígitos'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string(),
   acceptTerms: z.boolean().refine(val => val === true, 'Debes aceptar los términos')
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -37,47 +38,169 @@ interface RegisterModalProps {
 export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegisterSuccess }: RegisterModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'form' | 'verification' | 'complete'>('form');
+  const [registrationEmail, setRegistrationEmail] = useState('');
   const { t } = useLanguage();
+  const { refreshProfile, microfinancieraId } = useAuth();
   
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
+      dni: '',
       email: '',
       phone: '',
       password: '',
-      confirmPassword: '',
       acceptTerms: false
     }
   });
 
   const onSubmit = async (data: RegisterForm) => {
+    if (!microfinancieraId) {
+      form.setError('root', { 
+        type: 'manual', 
+        message: 'Por favor selecciona una microfinanciera primero' 
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    console.log('Register data:', data);
-    // Todo: remove mock functionality - implement actual registration
     
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    console.log('Registro exitoso');
-    setIsSubmitting(false);
-    if (onRegisterSuccess) {
-      onRegisterSuccess();
-    } else {
-      onClose();
+    try {
+      // Verificar si el email ya existe EN ESTA MICROFINANCIERA
+      const emailExists = await authService.checkEmailExists(data.email, microfinancieraId);
+      if (emailExists) {
+        form.setError('email', { 
+          type: 'manual', 
+          message: 'Este email ya está registrado en esta microfinanciera' 
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Verificar si el DNI ya existe EN ESTA MICROFINANCIERA
+      const dniExists = await authService.checkDniExists(data.dni, microfinancieraId);
+      if (dniExists) {
+        form.setError('dni', { 
+          type: 'manual', 
+          message: 'Este DNI ya está registrado en esta microfinanciera' 
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Guardar el email y pasar al paso de verificación
+      setRegistrationEmail(data.email);
+      setCurrentStep('verification');
+    } catch (error: any) {
+      console.error('Error en validación:', error);
+      form.setError('root', { type: 'manual', message: 'Error al validar los datos' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleSocialRegister = (provider: 'google') => {
-    console.log(`Register with ${provider}`);
-    // Todo: remove mock functionality - implement social registration
-    onClose();
+  const handleVerificationComplete = async () => {
+    const data = form.getValues();
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Registrar usuario con rol de CUSTOMER (portal para clientes)
+      const result = await authService.registerWithEmail({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dni: data.dni,
+        phone: data.phone,
+        microfinancieraId: microfinancieraId!,
+        roles: ['customer'] // Siempre customer en el portal
+      });
+
+      console.log('Registro exitoso:', result);
+      
+      // Resetear formulario
+      form.reset();
+      setCurrentStep('form');
+      
+      if (onRegisterSuccess) {
+        onRegisterSuccess();
+      } else {
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Error en registro:', error);
+      
+      // Volver al formulario con el error
+      setCurrentStep('form');
+      
+      let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este email ya tiene una cuenta. ¿Quieres iniciar sesión en su lugar?';
+        form.setError('email', { 
+          type: 'manual', 
+          message: 'Este email ya está registrado. Usa "Iniciar Sesión" si ya tienes cuenta.' 
+        });
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        form.setError('password', { type: 'manual', message: errorMessage });
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Email inválido';
+        form.setError('email', { type: 'manual', message: errorMessage });
+      } else if (error.message) {
+        form.setError('root', { type: 'manual', message: error.message });
+      } else {
+        form.setError('root', { type: 'manual', message: errorMessage });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSocialRegister = async (provider: 'google') => {
+    if (!microfinancieraId) {
+      form.setError('root', { 
+        type: 'manual', 
+        message: 'Por favor selecciona una microfinanciera primero' 
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const result = await authService.loginWithGoogle(microfinancieraId, ['customer']);
+      console.log('Registro con Google exitoso:', result);
+      
+      // El AuthContext ahora usa listener en tiempo real, no necesitamos delay
+      if (onRegisterSuccess) {
+        onRegisterSuccess();
+      } else {
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Error con Google:', error);
+      
+      let errorMessage = 'Error al registrarse con Google. Inténtalo de nuevo.';
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Registro cancelado por el usuario';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup bloqueado. Permite popups para este sitio.';
+      }
+      
+      form.setError('root', { type: 'manual', message: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full max-h-[90vh] h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full max-h-[95vh] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('register.title')}</DialogTitle>
           <DialogDescription>{t('register.subtitle')}</DialogDescription>
@@ -119,28 +242,49 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
           </div>
 
           {/* Right Side - Form */}
-          <div className="flex flex-col justify-start p-4 lg:p-6 bg-background overflow-y-auto">
-            {/* Logo/Brand */}
-            <div className="flex items-center mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-indigo-700 rounded-lg flex items-center justify-center mr-3">
-                <Star className="h-5 w-5 text-white" />
-              </div>
-            </div>
+          <div className="flex flex-col justify-start p-6 bg-background overflow-y-auto" style={{ maxHeight: '95vh' }}>
+            {currentStep === 'verification' ? (
+              <EmailVerificationStep
+                email={registrationEmail}
+                onVerified={handleVerificationComplete}
+                onBack={() => setCurrentStep('form')}
+              />
+            ) : (
+              <>
+                {/* Logo/Brand */}
+                <div className="flex items-center mb-2">
+                  <div className="w-6 h-6 bg-gradient-to-br from-cyan-600 to-indigo-700 rounded-lg flex items-center justify-center mr-2">
+                    <Star className="h-4 w-4 text-white" />
+                  </div>
+                </div>
 
-            {/* Header */}
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                {t('register.title')}
-              </h1>
-              <p className="text-muted-foreground">
-                {t('register.subtitle')}
-              </p>
-            </div>
+                {/* Header */}
+                <div className="mb-3">
+                  <h1 className="text-xl font-bold text-foreground mb-1">
+                    {t('register.title')}
+                  </h1>
+                  <p className="text-xs text-muted-foreground">
+                    {t('register.subtitle')}
+                  </p>
+                </div>
 
-            {/* Form */}
+                {/* Selector de Microfinanciera */}
+                <div className="mb-3">
+                  <MicrofinancieraSelector />
+                </div>
+
+                {microfinancieraId && (
+                <>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                {/* Error general */}
+                {form.formState.errors.root && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                    {form.formState.errors.root.message}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -185,6 +329,29 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                     )}
                   />
                 </div>
+                
+                <FormField
+                  control={form.control}
+                  name="dni"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        DNI/NIE *
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="text"
+                          autoComplete="off"
+                          placeholder="12345678A"
+                          data-testid="input-register-dni"
+                          className="h-9 border-input bg-background"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 
                 <FormField
                   control={form.control}
@@ -248,52 +415,17 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                             autoComplete="new-password"
                             placeholder="Introduce contraseña"
                             data-testid="input-register-password"
-                            className="h-9 border-input bg-background pr-12"
+                            className="h-9 border-input bg-background pr-10"
                           />
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted/50"
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        {t('register.confirm_password')} *
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            {...field} 
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            autoComplete="new-password"
-                            placeholder="Confirma tu contraseña"
-                            data-testid="input-register-confirm-password"
-                            className="h-9 border-input bg-background pr-12"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            data-testid="button-toggle-confirm-password"
-                          >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                           </Button>
                         </div>
                       </FormControl>
@@ -325,7 +457,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
                   disabled={isSubmitting}
                   data-testid="button-register-submit"
                 >
@@ -342,10 +474,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
             </Form>
 
             {/* Divider */}
-            <div className="relative my-3">
+            <div className="relative my-2">
               <Separator />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-background px-4 text-muted-foreground text-sm">
+                <span className="bg-background px-3 text-muted-foreground text-xs">
                   {t('register.or')}
                 </span>
               </div>
@@ -354,16 +486,16 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
             {/* Social Register */}
             <Button 
               variant="outline" 
-              className="w-full h-9 hover-elevate mb-3" 
+              className="w-full h-10 hover-elevate mb-2" 
               onClick={() => handleSocialRegister('google')}
               data-testid="button-register-google"
             >
-              <FaGoogle className="mr-3 h-4 w-4 text-red-500" />
+              <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
               {t('register.google')}
             </Button>
 
             {/* Login Link */}
-            <div className="text-center text-sm text-muted-foreground mt-2">
+            <div className="text-center text-xs text-muted-foreground">
               {t('register.have_account')}{' '}
               <Button 
                 variant="ghost" 
@@ -374,6 +506,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegi
                 {t('register.login_here')}
               </Button>
             </div>
+            </>
+            )}
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

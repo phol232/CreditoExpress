@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Shield, Mail, Phone, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { verificationService } from '@/services/verificationService';
 
 const otpSchema = z.object({
   otp: z.string().min(6, 'El código debe tener 6 dígitos').max(6, 'El código debe tener 6 dígitos')
@@ -18,14 +20,18 @@ type OtpForm = z.infer<typeof otpSchema>;
 interface VerificationFormProps {
   contactType: 'phone' | 'email';
   contactValue: string;
+  onSuccess?: () => void;
 }
 
-export default function VerificationForm({ contactType, contactValue }: VerificationFormProps) {
+export default function VerificationForm({ contactType, contactValue, onSuccess }: VerificationFormProps) {
+  const { user, microfinancieraId } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [canResend, setCanResend] = useState(false);
-  
+  const [isSending, setIsSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const form = useForm<OtpForm>({
     resolver: zodResolver(otpSchema),
     defaultValues: {
@@ -33,28 +39,107 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
     }
   });
 
+  // Verificar si el email ya está verificado ANTES de enviar código
+  useEffect(() => {
+    const checkAndSendCode = async () => {
+      if (user && microfinancieraId && contactType === 'email') {
+        // Primero verificar si ya está verificado
+        const verified = await verificationService.isEmailVerified(user.uid, microfinancieraId);
+        if (verified) {
+          setIsVerified(true);
+        } else {
+          // Solo enviar código si NO está verificado
+          sendVerificationCode();
+        }
+      }
+    };
+    checkAndSendCode();
+  }, [user, microfinancieraId]);
+
+  const sendVerificationCode = async () => {
+    if (!user || !microfinancieraId) {
+      setErrorMessage('Usuario no autenticado');
+      return;
+    }
+
+    setIsSending(true);
+    setErrorMessage(null);
+
+    try {
+      const result = await verificationService.sendVerificationCode(
+        contactValue,
+        user.uid,
+        microfinancieraId
+      );
+
+      if (result.success) {
+        setTimeLeft(result.expiresIn || 600);
+        setCanResend(false);
+        console.log('✅ Código enviado exitosamente');
+      }
+    } catch (error: any) {
+      console.error('Error sending code:', error);
+      setErrorMessage(error.message || 'Error al enviar el código');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const onSubmit = async (data: OtpForm) => {
+    if (!user || !microfinancieraId) {
+      setErrorMessage('Usuario no autenticado');
+      return;
+    }
+
     setIsSubmitting(true);
-    console.log('OTP verification:', data);
-    // Todo: remove mock functionality - implement actual OTP verification API call
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsVerified(true);
-    setIsSubmitting(false);
-    console.log('Verificación exitosa');
+    setErrorMessage(null);
+
+    try {
+      const result = await verificationService.verifyCode(
+        data.otp,
+        contactValue, // Usar el email en lugar del userId
+        user.uid,
+        microfinancieraId
+      );
+
+      if (result.success) {
+        setIsVerified(true);
+        console.log('✅ Verificación exitosa');
+        
+        // Recargar el usuario de Firebase para actualizar emailVerified
+        if (user) {
+          await user.reload();
+        }
+        
+        // Llamar al callback de éxito después de un breve delay
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 1500);
+      } else {
+        setErrorMessage(result.message);
+        form.setError('otp', { message: result.message });
+      }
+    } catch (error: any) {
+      console.error('Error verifying code:', error);
+      setErrorMessage(error.message || 'Error al verificar el código');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleResendOtp = () => {
-    console.log('Reenviar OTP');
-    // Todo: remove mock functionality - implement actual resend OTP API call
-    setTimeLeft(300);
-    setCanResend(false);
+  const handleResendOtp = async () => {
+    await sendVerificationCode();
   };
 
-  // Simulate countdown
-  useState(() => {
+  // Countdown timer
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      setCanResend(true);
+      return;
+    }
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -64,9 +149,9 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
-  });
+  }, [timeLeft]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -108,8 +193,23 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
           <span className="font-medium text-foreground">{contactValue}</span>
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
+        {isSending && (
+          <div className="text-center text-sm text-muted-foreground mb-4">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              Enviando código...
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-4">
+            {errorMessage}
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -122,8 +222,8 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
                     Código de Verificación
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       placeholder="123456"
                       className="text-center text-2xl tracking-widest font-mono"
                       maxLength={6}
@@ -134,10 +234,10 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
                 </FormItem>
               )}
             />
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
+
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isSubmitting}
               data-testid="button-verify"
             >
@@ -155,15 +255,15 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
             </Button>
           </form>
         </Form>
-        
+
         <div className="mt-6 text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
             <Clock className="h-4 w-4" />
             <span>El código expira en {formatTime(timeLeft)}</span>
           </div>
-          
-          <Button 
-            variant="ghost" 
+
+          <Button
+            variant="ghost"
             size="sm"
             onClick={handleResendOtp}
             disabled={!canResend}
@@ -172,7 +272,7 @@ export default function VerificationForm({ contactType, contactValue }: Verifica
             {canResend ? 'Reenviar código' : `Reenviar en ${formatTime(timeLeft)}`}
           </Button>
         </div>
-        
+
         <div className="mt-6 text-center text-xs text-muted-foreground">
           <div className="flex items-center justify-center gap-2">
             <Shield className="h-3 w-3 text-green-600" />

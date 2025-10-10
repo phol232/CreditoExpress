@@ -11,6 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff, Star } from 'lucide-react';
 import { FaGoogle } from 'react-icons/fa';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { authService } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
+import { MicrofinancieraSelector } from './MicrofinancieraSelector';
 
 const loginSchema = z.object({
   email: z.string().email('Ingresa un email válido'),
@@ -30,6 +33,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { t } = useLanguage();
+  const { refreshProfile, microfinancieraId } = useAuth();
   
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -41,26 +45,87 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
   });
 
   const onSubmit = async (data: LoginForm) => {
+    if (!microfinancieraId) {
+      form.setError('root', { 
+        type: 'manual', 
+        message: 'Por favor selecciona una microfinanciera primero' 
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    console.log('Login data:', data);
-    // Todo: remove mock functionality - implement actual login
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log('Login exitoso');
-    setIsSubmitting(false);
-    onClose();
+    try {
+      const result = await authService.loginWithEmail(data.email, data.password, microfinancieraId);
+      console.log('Login exitoso:', result);
+      
+      // El AuthContext ahora usa listener en tiempo real, no necesitamos refrescar manualmente
+      
+      // Resetear formulario
+      form.reset();
+      onClose();
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      
+      let errorMessage = 'Error al iniciar sesión. Verifica tus credenciales.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No existe una cuenta con este email';
+        form.setError('email', { type: 'manual', message: errorMessage });
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = 'Contraseña incorrecta';
+        form.setError('password', { type: 'manual', message: errorMessage });
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Email inválido';
+        form.setError('email', { type: 'manual', message: errorMessage });
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Demasiados intentos fallidos. Inténtalo más tarde.';
+        form.setError('root', { type: 'manual', message: errorMessage });
+      } else {
+        form.setError('root', { type: 'manual', message: errorMessage });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSocialLogin = (provider: 'google') => {
-    console.log(`Login with ${provider}`);
-    // Todo: remove mock functionality - implement social login
-    onClose();
+  const handleSocialLogin = async (provider: 'google') => {
+    if (!microfinancieraId) {
+      form.setError('root', { 
+        type: 'manual', 
+        message: 'Por favor selecciona una microfinanciera primero' 
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const result = await authService.loginWithGoogle(microfinancieraId, ['customer']);
+      console.log('Login con Google exitoso:', result);
+      
+      // El AuthContext ahora usa listener en tiempo real, no necesitamos delay
+      onClose();
+    } catch (error: any) {
+      console.error('Error con Google:', error);
+      
+      let errorMessage = 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Login cancelado por el usuario';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup bloqueado. Permite popups para este sitio.';
+      }
+      
+      form.setError('root', { type: 'manual', message: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full max-h-[85vh] h-[85vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{t('login.title')}</DialogTitle>
           <DialogDescription>{t('login.subtitle')}</DialogDescription>
@@ -85,9 +150,22 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               </p>
             </div>
 
-            {/* Form */}
+            {/* Selector de Microfinanciera */}
+            <div className="mb-4">
+              <MicrofinancieraSelector />
+            </div>
+
+            {microfinancieraId && (
+            <>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Error general */}
+                {form.formState.errors.root && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                    {form.formState.errors.root.message}
+                  </div>
+                )}
+                
                 <FormField
                   control={form.control}
                   name="email"
@@ -103,7 +181,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                           autoComplete="username"
                           placeholder="Introduce tu dirección de email"
                           data-testid="input-login-email"
-                          className="h-10 border-input bg-background"
+                          className="h-11 border-input bg-background"
                         />
                       </FormControl>
                       <FormMessage />
@@ -127,17 +205,17 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             autoComplete="current-password"
                             placeholder="Introduce contraseña"
                             data-testid="input-login-password"
-                            className="h-10 border-input bg-background pr-12"
+                            className="h-11 border-input bg-background pr-10"
                           />
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="absolute right-[8px] top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0 hover:bg-muted/50"
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                           </Button>
                         </div>
                       </FormControl>
@@ -175,7 +253,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" 
                   disabled={isSubmitting}
                   data-testid="button-login-submit"
                 >
@@ -204,7 +282,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             {/* Social Login */}
             <Button 
               variant="outline" 
-              className="w-full h-10 hover-elevate" 
+              className="w-full h-11 hover-elevate" 
               onClick={() => handleSocialLogin('google')}
               data-testid="button-login-google"
             >
@@ -224,6 +302,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 {t('login.register_here')}
               </Button>
             </div>
+            </>
+            )}
           </div>
 
           {/* Right Side - Background Pattern */}

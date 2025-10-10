@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import RegistrationForm from '@/components/RegistrationForm';
 import VerificationForm from '@/components/VerificationForm';
-import PreApplicationForm from '@/components/PreApplicationForm';
+import CompleteLoanApplicationForm from '@/components/CompleteLoanApplicationForm';
 import RegisterModal from '@/components/RegisterModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ApplicationStep = 'registration' | 'verification' | 'pre-application' | 'complete';
 
@@ -17,16 +18,30 @@ interface ApplicationModalProps {
 }
 
 export default function ApplicationModal({ isOpen, onClose }: ApplicationModalProps) {
+  const { user, profile } = useAuth();
   const [currentStep, setCurrentStep] = useState<ApplicationStep>('registration');
-  const [userEmail, setUserEmail] = useState('juan@ejemplo.com');
-  const [userPhone, setUserPhone] = useState('+52 55 1234 5678');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [isUserRegistered, setIsUserRegistered] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+
+  // Detectar si el usuario ya está logueado y saltar al paso 2
+  useEffect(() => {
+    if (user && profile) {
+      setIsUserRegistered(true);
+      setUserEmail(profile.email);
+      setUserPhone(profile.phone || '');
+      setCurrentStep('verification');
+    } else {
+      setIsUserRegistered(false);
+      setCurrentStep('registration');
+    }
+  }, [user, profile, isOpen]);
 
   const steps = [
     { id: 'registration', title: 'Registro', description: 'Crea tu cuenta' },
     { id: 'verification', title: 'Verificación', description: 'Confirma tu contacto' },
-    { id: 'pre-application', title: 'Pre-solicitud', description: 'Completa tu solicitud' },
+    { id: 'pre-application', title: 'Solicitud', description: 'Completa tu solicitud' },
     { id: 'complete', title: 'Completado', description: 'Solicitud enviada' }
   ];
 
@@ -82,7 +97,7 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
                 <p className="text-muted-foreground mb-6">
                   Para solicitar un crédito, necesitas crear una cuenta primero. Es rápido y seguro.
                 </p>
-                <Button 
+                <Button
                   onClick={handleRegisterRequired}
                   data-testid="button-start-registration"
                   className="w-full"
@@ -97,7 +112,7 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
       case 'verification':
         return <VerificationForm contactType="email" contactValue={userEmail} />;
       case 'pre-application':
-        return <PreApplicationForm />;
+        return <CompleteLoanApplicationForm onSuccess={goToNextStep} />;
       case 'complete':
         return (
           <Card className="w-full max-w-md mx-auto text-center">
@@ -109,9 +124,9 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
                 ¡Solicitud Enviada!
               </h3>
               <p className="text-muted-foreground mb-6">
-                Tu pre-solicitud ha sido recibida exitosamente. Recibirás una respuesta en máximo 24 horas.
+                Tu solicitud de crédito ha sido recibida exitosamente. Recibirás una respuesta en máximo 48 horas hábiles.
               </p>
-              <Button 
+              <Button
                 onClick={handleClose}
                 data-testid="button-close-application"
                 className="w-full"
@@ -137,7 +152,7 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
             Completa el proceso en simples pasos
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Progress */}
           <Card>
@@ -150,17 +165,16 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
                   {Math.round(getProgressPercentage())}% completado
                 </span>
               </div>
-              
+
               <Progress value={getProgressPercentage()} className="mb-4" />
-              
+
               <div className="grid grid-cols-4 gap-4">
                 {steps.map((step, index) => (
                   <div key={step.id} className="text-center">
-                    <div className={`w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-semibold ${
-                      index <= getCurrentStepIndex() 
-                        ? 'bg-primary text-primary-foreground' 
+                    <div className={`w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-semibold ${index <= getCurrentStepIndex()
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
-                    }`}>
+                      }`}>
                       {index + 1}
                     </div>
                     <p className="text-xs font-medium text-foreground">{step.title}</p>
@@ -179,8 +193,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
           {/* Navigation */}
           {currentStep !== 'complete' && (
             <div className="flex justify-between px-6 pb-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={goToPreviousStep}
                 disabled={getCurrentStepIndex() === 0}
                 data-testid="button-previous-step"
@@ -188,8 +202,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Anterior
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={goToNextStep}
                 disabled={getCurrentStepIndex() === steps.length - 1}
                 data-testid="button-next-step"
@@ -201,8 +215,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
           )}
         </div>
       </DialogContent>
-      
-      <RegisterModal 
+
+      <RegisterModal
         isOpen={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
         onSwitchToLogin={() => {

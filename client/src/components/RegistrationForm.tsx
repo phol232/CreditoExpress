@@ -21,7 +21,11 @@ const registrationSchema = z.object({
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
-export default function RegistrationForm() {
+interface RegistrationFormProps {
+  onSuccess?: () => void;
+}
+
+export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<RegistrationForm>({
@@ -47,6 +51,11 @@ export default function RegistrationForm() {
     
     console.log('Usuario registrado exitosamente');
     setIsSubmitting(false);
+    
+    // Llamar al callback de éxito
+    if (onSuccess) {
+      onSuccess();
+    }
   };
 
   return (
