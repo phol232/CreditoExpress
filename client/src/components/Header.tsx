@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, User, LogOut, Settings, FileText } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, FileText, Wallet } from 'lucide-react';
+import { Link } from 'wouter';
 import LoginModal from '@/components/LoginModal';
 import RegisterModal from '@/components/RegisterModal';
 import ApplicationModal from '@/components/ApplicationModal';
@@ -13,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
-export default function Header() {
+export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -77,6 +78,12 @@ export default function Header() {
                     <DropdownMenuItem onClick={() => setIsHistoryOpen(true)}>
                       <FileText className="h-4 w-4 mr-2" />
                       Mis Solicitudes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-loans">
+                        <Wallet className="h-4 w-4 mr-2" />
+                        Mis Préstamos
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsProfileOpen(true)}>
                       <Settings className="h-4 w-4 mr-2" />
@@ -182,6 +189,17 @@ export default function Header() {
                       Mis Solicitudes
                     </Button>
 
+                    <Link href="/my-loans">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Wallet className="h-4 w-4 mr-2" />
+                        Mis Préstamos
+                      </Button>
+                    </Link>
+
                     <Button
                       variant="ghost"
                       className="w-full justify-start"
@@ -272,3 +290,5 @@ export default function Header() {
     </header>
   );
 }
+ex
+port default Header;
