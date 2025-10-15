@@ -64,7 +64,7 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={profile?.photoUrl} alt={profile?.fullName} />
+                        <AvatarImage src={profile?.photoUrl || undefined} alt={profile?.fullName || undefined} />
                         <AvatarFallback>
                           {profile?.firstName?.charAt(0) || profile?.lastName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
@@ -162,7 +162,7 @@ export function Header() {
                   <>
                     <div className="flex items-center gap-3 px-3 py-2 bg-muted/50 rounded-lg mb-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={profile?.photoUrl} alt={profile?.fullName} />
+                        <AvatarImage src={profile?.photoUrl || undefined} alt={profile?.fullName || undefined} />
                         <AvatarFallback>
                           {profile?.firstName?.charAt(0) || profile?.lastName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
@@ -290,5 +290,5 @@ export function Header() {
     </header>
   );
 }
-ex
-port default Header;
+
+export default Header;
