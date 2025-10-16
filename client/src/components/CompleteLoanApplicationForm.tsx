@@ -9,6 +9,7 @@ import { FileText, DollarSign, User, Briefcase, Home, CreditCard, Shield, Clock 
 import { useAuth } from '@/contexts/AuthContext';
 import { loanApplicationService } from '@/services/loanApplicationService';
 import { Separator } from '@/components/ui/separator';
+import { ProductSelectionStep } from './loan-form-steps/ProductSelectionStep';
 import { PersonalInfoStep } from './loan-form-steps/PersonalInfoStep';
 import { ContactInfoStep } from './loan-form-steps/ContactInfoStep';
 import { EmploymentInfoStep } from './loan-form-steps/EmploymentInfoStep';
@@ -18,6 +19,17 @@ import { ConsentsStep } from './loan-form-steps/ConsentsStep';
 
 // Schema de validación completo
 const completeLoanApplicationSchema = z.object({
+  // Producto
+  productId: z.string().min(1, 'Debes seleccionar un producto'),
+  productCode: z.string().min(1),
+  productName: z.string().min(1),
+  productRateNominal: z.number(),
+  productInterestType: z.string(),
+  productTermMin: z.number(),
+  productTermMax: z.number(),
+  productAmountMin: z.number(),
+  productAmountMax: z.number(),
+  
   // Datos Personales
   firstName: z.string().min(2, 'Nombre requerido'),
   lastName: z.string().min(2, 'Apellido requerido'),
@@ -83,7 +95,7 @@ interface CompleteLoanApplicationFormProps {
 export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanApplicationFormProps) {
   const { user, microfinancieraId, profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -93,6 +105,15 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
   const form = useForm<CompleteLoanApplicationForm>({
     resolver: zodResolver(completeLoanApplicationSchema),
     defaultValues: {
+      productId: '',
+      productCode: '',
+      productName: '',
+      productRateNominal: 0,
+      productInterestType: '',
+      productTermMin: 0,
+      productTermMax: 0,
+      productAmountMin: 0,
+      productAmountMax: 0,
       firstName: profile?.firstName || '',
       lastName: profile?.lastName || '',
       documentType: 'DNI',
@@ -164,12 +185,37 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
       return;
     }
 
+    // Validar límites del producto
+    const loanAmount = parseFloat(data.loanAmount);
+    const loanTermMonths = parseInt(data.loanTermMonths);
+
+    if (loanAmount < data.productAmountMin || loanAmount > data.productAmountMax) {
+      setErrorMessage(`El monto debe estar entre S/${data.productAmountMin} y S/${data.productAmountMax}`);
+      return;
+    }
+
+    if (loanTermMonths < data.productTermMin || loanTermMonths > data.productTermMax) {
+      setErrorMessage(`El plazo debe estar entre ${data.productTermMin} y ${data.productTermMax} meses`);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
       // Preparar datos para enviar
       const applicationData = {
+        product: {
+          id: data.productId,
+          code: data.productCode,
+          name: data.productName,
+          rateNominal: data.productRateNominal,
+          interestType: data.productInterestType,
+          termMin: data.productTermMin,
+          termMax: data.productTermMax,
+          amountMin: data.productAmountMin,
+          amountMax: data.productAmountMax,
+        },
         personalInfo: {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -277,16 +323,18 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
     const fields = getFieldsForStep(currentStep);
     const isValid = await form.trigger(fields as any);
     if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, 6));
+      setCurrentStep(prev => Math.min(prev + 1, 7));
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
   const getFieldsForStep = (step: number): string[] => {
     switch (step) {
+      case 0:
+        return ['productId', 'productCode', 'productName'];
       case 1:
         return ['firstName', 'lastName', 'documentType', 'documentNumber', 'birthDate', 'nationality', 'maritalStatus'];
       case 2:
@@ -335,11 +383,12 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
 
 
   const steps = [
+    { number: 0, title: 'Tipo de Crédito', icon: CreditCard },
     { number: 1, title: 'Datos Personales', icon: User },
     { number: 2, title: 'Contacto', icon: Home },
     { number: 3, title: 'Información Laboral', icon: Briefcase },
     { number: 4, title: 'Información Financiera', icon: DollarSign },
-    { number: 5, title: 'Información Adicional', icon: CreditCard },
+    { number: 5, title: 'Información Adicional', icon: FileText },
     { number: 6, title: 'Consentimientos', icon: Shield },
   ];
 
@@ -388,7 +437,7 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
             ))}
           </div>
           <div className="text-center text-sm text-muted-foreground md:hidden">
-            Paso {currentStep} de {steps.length}: {steps[currentStep - 1].title}
+            Paso {currentStep + 1} de {steps.length}: {steps[currentStep].title}
           </div>
         </div>
 
@@ -402,6 +451,7 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Step Content */}
             <div className="min-h-[400px]">
+              {currentStep === 0 && <ProductSelectionStep form={form} />}
               {currentStep === 1 && <PersonalInfoStep form={form} />}
               {currentStep === 2 && <ContactInfoStep form={form} />}
               {currentStep === 3 && <EmploymentInfoStep form={form} />}
@@ -424,7 +474,7 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 1 || isSubmitting}
+                disabled={currentStep === 0 || isSubmitting}
               >
                 Anterior
               </Button>

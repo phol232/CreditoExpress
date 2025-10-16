@@ -35,9 +35,9 @@ const statusConfig: Record<string, { label: string; icon: any; color: string }> 
     color: 'bg-red-100 text-red-700 border-red-300'
   },
   disbursed: {
-    label: 'Desembolsada',
+    label: 'Aprobado',
     icon: CheckCircle,
-    color: 'bg-emerald-100 text-emerald-700 border-emerald-300'
+    color: 'bg-green-100 text-green-700 border-green-300'
   }
 };
 

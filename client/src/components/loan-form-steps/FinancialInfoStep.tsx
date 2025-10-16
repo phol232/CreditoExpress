@@ -1,7 +1,7 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, AlertCircle } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 
 interface FinancialInfoStepProps {
@@ -9,6 +9,33 @@ interface FinancialInfoStepProps {
 }
 
 export function FinancialInfoStep({ form }: FinancialInfoStepProps) {
+  const productName = form.watch('productName');
+  const productAmountMin = form.watch('productAmountMin');
+  const productAmountMax = form.watch('productAmountMax');
+  const productTermMin = form.watch('productTermMin');
+  const productTermMax = form.watch('productTermMax');
+  const loanAmount = form.watch('loanAmount');
+  const loanTermMonths = form.watch('loanTermMonths');
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const isAmountValid = !loanAmount || (
+    parseFloat(loanAmount) >= productAmountMin && 
+    parseFloat(loanAmount) <= productAmountMax
+  );
+
+  const isTermValid = !loanTermMonths || (
+    parseInt(loanTermMonths) >= productTermMin && 
+    parseInt(loanTermMonths) <= productTermMax
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 mb-6">
@@ -17,6 +44,18 @@ export function FinancialInfoStep({ form }: FinancialInfoStepProps) {
         </div>
         <h3 className="text-lg font-semibold">Información Financiera</h3>
       </div>
+
+      {productName && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm font-medium text-blue-900">
+            Producto seleccionado: <span className="font-bold">{productName}</span>
+          </p>
+          <p className="text-xs text-blue-700 mt-1">
+            Monto: {formatCurrency(productAmountMin)} - {formatCurrency(productAmountMax)} | 
+            Plazo: {productTermMin} - {productTermMax} meses
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
@@ -135,6 +174,14 @@ export function FinancialInfoStep({ form }: FinancialInfoStepProps) {
                     <Input {...field} type="number" className="pl-10" placeholder="10000" />
                   </div>
                 </FormControl>
+                {!isAmountValid && loanAmount && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>
+                      El monto debe estar entre {formatCurrency(productAmountMin)} y {formatCurrency(productAmountMax)}
+                    </span>
+                  </div>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -153,6 +200,7 @@ export function FinancialInfoStep({ form }: FinancialInfoStepProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="3">3 meses</SelectItem>
                     <SelectItem value="6">6 meses</SelectItem>
                     <SelectItem value="12">12 meses</SelectItem>
                     <SelectItem value="18">18 meses</SelectItem>
@@ -161,6 +209,14 @@ export function FinancialInfoStep({ form }: FinancialInfoStepProps) {
                     <SelectItem value="48">48 meses</SelectItem>
                   </SelectContent>
                 </Select>
+                {!isTermValid && loanTermMonths && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>
+                      El plazo debe estar entre {productTermMin} y {productTermMax} meses
+                    </span>
+                  </div>
+                )}
                 <FormMessage />
               </FormItem>
             )}
