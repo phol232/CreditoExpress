@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Calendar, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, FileText, Calendar, DollarSign, TrendingUp, AlertCircle, Eye, CreditCard } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -33,6 +34,8 @@ export default function MyLoans() {
     const [loans, setLoans] = useState<Loan[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         loadLoans();
@@ -48,7 +51,6 @@ export default function MyLoans() {
             setLoading(true);
             setError(null);
 
-            // Buscar préstamos desembolsados del usuario
             const loansRef = collection(db, `microfinancieras/${microfinancieraId}/loanApplications`);
             const q = query(
                 loansRef,
@@ -62,22 +64,27 @@ export default function MyLoans() {
                 snapshot.docs.map(async (doc) => {
                     const data = doc.data();
 
-                    // Obtener cronograma de pagos
                     const scheduleRef = collection(doc.ref, 'repaymentSchedule');
-                    const scheduleSnapshot = await getDocs(query(scheduleRef, orderBy('paymentNumber', 'asc')));
+                    const scheduleSnapshot = await getDocs(scheduleRef);
 
-                    const schedule = scheduleSnapshot.docs.map(s => {
-                        const scheduleData = s.data();
-                        return {
-                            paymentNumber: scheduleData.paymentNumber,
-                            dueDate: scheduleData.dueDate?.toDate() || new Date(),
-                            amount: scheduleData.amount || 0,
-                            principal: scheduleData.principal || 0,
-                            interest: scheduleData.interest || 0,
-                            balance: scheduleData.balance || 0,
-                            status: scheduleData.status || 'pending',
-                        } as Payment;
-                    });
+                    let schedule: Payment[] = [];
+
+                    if (scheduleSnapshot.docs.length > 0) {
+                        schedule = scheduleSnapshot.docs.map(s => {
+                            const scheduleData = s.data();
+                            return {
+                                paymentNumber: scheduleData.installmentNumber || scheduleData.paymentNumber || 0,
+                                dueDate: scheduleData.dueDate?.toDate() || new Date(),
+                                amount: scheduleData.totalPayment || scheduleData.amount || 0,
+                                principal: scheduleData.principal || 0,
+                                interest: scheduleData.interest || 0,
+                                balance: scheduleData.remainingBalance || scheduleData.balance || 0,
+                                status: scheduleData.status || 'pending',
+                            } as Payment;
+                        });
+
+                        schedule.sort((a, b) => a.paymentNumber - b.paymentNumber);
+                    }
 
                     return {
                         id: doc.id,
@@ -91,7 +98,6 @@ export default function MyLoans() {
                 })
             );
 
-            // Ordenar por fecha de desembolso (más reciente primero)
             loansData.sort((a, b) => b.disbursedAt.getTime() - a.disbursedAt.getTime());
 
             setLoans(loansData);
@@ -208,89 +214,97 @@ export default function MyLoans() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {loans.map((loan) => (
-                                <Card key={loan.id} className="overflow-hidden">
-                                    <CardHeader className="bg-muted/50">
-                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                            <div>
-                                                <CardTitle className="text-2xl">
-                                                    {formatCurrency(loan.amount)}
-                                                </CardTitle>
-                                                <CardDescription className="mt-1">
-                                                    Préstamo desembolsado el {formatDate(loan.disbursedAt)}
-                                                </CardDescription>
+                                <Card key={loan.id} className="hover:shadow-lg transition-shadow">
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl flex items-center gap-2">
+                                            <DollarSign className="h-6 w-6 text-primary" />
+                                            {formatCurrency(loan.amount)}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Desembolsado el {formatDate(loan.disbursedAt)}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* Información resumida */}
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-muted-foreground">Plazo</p>
+                                                    <p className="font-medium">{loan.loanTermMonths} meses</p>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-4 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{loan.loanTermMonths} meses</span>
+                                            <div className="flex items-center gap-2">
+                                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-muted-foreground">Tasa</p>
+                                                    <p className="font-medium">{loan.interestRate}% anual</p>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{loan.interestRate}% anual</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-muted-foreground">Cuotas</p>
+                                                    <p className="font-medium">{loan.repaymentSchedule.length} pagos</p>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{loan.repaymentSchedule.length} cuotas</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-muted-foreground">Cuota mensual</p>
+                                                    <p className="font-medium">
+                                                        {loan.repaymentSchedule.length > 0
+                                                            ? formatCurrency(loan.repaymentSchedule[0].amount)
+                                                            : 'N/A'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
-                                    </CardHeader>
 
-                                    <CardContent className="p-0">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-muted/30 border-b">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold">Cuota</th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold">Fecha Venc.</th>
-                                                        <th className="px-4 py-3 text-right text-sm font-semibold">Monto</th>
-                                                        <th className="px-4 py-3 text-right text-sm font-semibold">Capital</th>
-                                                        <th className="px-4 py-3 text-right text-sm font-semibold">Interés</th>
-                                                        <th className="px-4 py-3 text-right text-sm font-semibold">Saldo</th>
-                                                        <th className="px-4 py-3 text-center text-sm font-semibold">Estado</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y">
-                                                    {loan.repaymentSchedule.map((payment) => (
-                                                        <tr
-                                                            key={payment.paymentNumber}
-                                                            className={`hover:bg-muted/20 transition-colors ${payment.status === 'paid' ? 'bg-green-50/50' :
-                                                                payment.status === 'overdue' ? 'bg-red-50/50' : ''
-                                                                }`}
-                                                        >
-                                                            <td className="px-4 py-3 text-sm font-medium">
-                                                                {payment.paymentNumber}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm">
-                                                                {formatDate(payment.dueDate)}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right font-medium">
-                                                                {formatCurrency(payment.amount)}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right">
-                                                                {formatCurrency(payment.principal)}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right">
-                                                                {formatCurrency(payment.interest)}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-right font-medium">
-                                                                {formatCurrency(payment.balance)}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <span
-                                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(
-                                                                        payment.status
-                                                                    )}`}
-                                                                >
-                                                                    {getStatusText(payment.status)}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                        {/* Próximo pago */}
+                                        {loan.repaymentSchedule.length > 0 && (
+                                            <div className="p-4 bg-muted/50 rounded-lg">
+                                                <p className="text-sm text-muted-foreground mb-1">Próximo pago</p>
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            {formatCurrency(loan.repaymentSchedule[0].amount)}
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Vence: {formatDate(loan.repaymentSchedule[0].dueDate)}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeClass(loan.repaymentSchedule[0].status)}`}>
+                                                        {getStatusText(loan.repaymentSchedule[0].status)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Botones de acción */}
+                                        <div className="flex gap-2 pt-2">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => {
+                                                    setSelectedLoan(loan);
+                                                    setIsModalOpen(true);
+                                                }}
+                                            >
+                                                <Eye className="h-4 w-4 mr-2" />
+                                                Ver Cronograma
+                                            </Button>
+                                            <Button
+                                                className="flex-1"
+                                                onClick={() => {
+                                                    alert('Funcionalidad de pago próximamente');
+                                                }}
+                                            >
+                                                <CreditCard className="h-4 w-4 mr-2" />
+                                                Pagar Cuota
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -299,6 +313,87 @@ export default function MyLoans() {
                     )}
                 </div>
             </div>
+
+            {/* Modal del cronograma */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl">Cronograma de Pagos</DialogTitle>
+                        <DialogDescription>
+                            {selectedLoan && `Préstamo de ${formatCurrency(selectedLoan.amount)}`}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedLoan && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-muted/30 border-b sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold">Cuota</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold">Fecha Venc.</th>
+                                        <th className="px-4 py-3 text-right text-sm font-semibold">Monto</th>
+                                        <th className="px-4 py-3 text-right text-sm font-semibold">Capital</th>
+                                        <th className="px-4 py-3 text-right text-sm font-semibold">Interés</th>
+                                        <th className="px-4 py-3 text-right text-sm font-semibold">Saldo</th>
+                                        <th className="px-4 py-3 text-center text-sm font-semibold">Estado</th>
+                                        <th className="px-4 py-3 text-center text-sm font-semibold">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {selectedLoan.repaymentSchedule.map((payment) => (
+                                        <tr
+                                            key={payment.paymentNumber}
+                                            className={`hover:bg-muted/20 transition-colors ${payment.status === 'paid' ? 'bg-green-50/50' :
+                                                payment.status === 'overdue' ? 'bg-red-50/50' : ''
+                                                }`}
+                                        >
+                                            <td className="px-4 py-3 text-sm font-medium">
+                                                {payment.paymentNumber}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                {formatDate(payment.dueDate)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right font-medium">
+                                                {formatCurrency(payment.amount)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right">
+                                                {formatCurrency(payment.principal)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right">
+                                                {formatCurrency(payment.interest)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right font-medium">
+                                                {formatCurrency(payment.balance)}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(
+                                                        payment.status
+                                                    )}`}
+                                                >
+                                                    {getStatusText(payment.status)}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {payment.status === 'pending' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => alert('Funcionalidad de pago próximamente')}
+                                                    >
+                                                        Pagar
+                                                    </Button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
             <Footer />
         </div>
     );

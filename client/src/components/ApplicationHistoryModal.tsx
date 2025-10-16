@@ -13,7 +13,7 @@ interface ApplicationHistoryModalProps {
   onClose: () => void;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
   pending: {
     label: 'Pendiente',
     icon: Clock,
@@ -33,6 +33,11 @@ const statusConfig = {
     label: 'Rechazada',
     icon: XCircle,
     color: 'bg-red-100 text-red-700 border-red-300'
+  },
+  disbursed: {
+    label: 'Desembolsada',
+    icon: CheckCircle,
+    color: 'bg-emerald-100 text-emerald-700 border-emerald-300'
   }
 };
 
@@ -137,8 +142,8 @@ export function ApplicationHistoryModal({ isOpen, onClose }: ApplicationHistoryM
                       {purposeLabels[selectedApp.financialInfo.loanPurpose] || selectedApp.financialInfo.loanPurpose}
                     </CardDescription>
                   </div>
-                  <Badge className={statusConfig[selectedApp.status].color}>
-                    {statusConfig[selectedApp.status].label}
+                  <Badge className={(statusConfig[selectedApp.status] || statusConfig.pending).color}>
+                    {(statusConfig[selectedApp.status] || statusConfig.pending).label}
                   </Badge>
                 </div>
               </CardHeader>
@@ -272,7 +277,12 @@ export function ApplicationHistoryModal({ isOpen, onClose }: ApplicationHistoryM
         ) : (
           <div className="space-y-4">
             {applications.map((app) => {
-              const StatusIcon = statusConfig[app.status].icon;
+              const statusInfo = statusConfig[app.status] || {
+                label: app.status,
+                icon: AlertCircle,
+                color: 'bg-gray-100 text-gray-700 border-gray-300'
+              };
+              const StatusIcon = statusInfo.icon;
 
               return (
                 <Card key={app.id} className="hover:shadow-md transition-shadow">
@@ -286,9 +296,9 @@ export function ApplicationHistoryModal({ isOpen, onClose }: ApplicationHistoryM
                           {purposeLabels[app.financialInfo.loanPurpose] || app.financialInfo.loanPurpose}
                         </CardDescription>
                       </div>
-                      <Badge className={statusConfig[app.status].color}>
+                      <Badge className={statusInfo.color}>
                         <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusConfig[app.status].label}
+                        {statusInfo.label}
                       </Badge>
                     </div>
                   </CardHeader>
