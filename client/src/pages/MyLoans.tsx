@@ -53,8 +53,7 @@ export default function MyLoans() {
             const q = query(
                 loansRef,
                 where('userId', '==', user.uid),
-                where('status', '==', 'disbursed'),
-                orderBy('disbursedAt', 'desc')
+                where('status', '==', 'disbursed')
             );
 
             const snapshot = await getDocs(q);
@@ -91,6 +90,9 @@ export default function MyLoans() {
                     } as Loan;
                 })
             );
+
+            // Ordenar por fecha de desembolso (más reciente primero)
+            loansData.sort((a, b) => b.disbursedAt.getTime() - a.disbursedAt.getTime());
 
             setLoans(loansData);
         } catch (error: any) {
