@@ -268,11 +268,13 @@ export default function CompleteLoanApplicationForm({ onSuccess }: CompleteLoanA
           authorizeCreditCheck: data.authorizeCreditCheck,
           confirmTruthfulness: data.confirmTruthfulness,
         },
-        location: userLocation ? {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          timestamp: new Date()
-        } : undefined,
+        ...(userLocation && {
+          location: {
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+            timestamp: new Date()
+          }
+        }),
       };
 
       console.log('📤 Enviando solicitud con datos:', applicationData);
