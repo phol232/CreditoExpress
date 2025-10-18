@@ -18,12 +18,14 @@ interface ApplicationModalProps {
 }
 
 export default function ApplicationModal({ isOpen, onClose }: ApplicationModalProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, microfinancieraId } = useAuth();
   const [currentStep, setCurrentStep] = useState<ApplicationStep>('registration');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
   const [isUserRegistered, setIsUserRegistered] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // Detectar si el usuario ya está logueado y saltar al paso 2
   useEffect(() => {
@@ -31,12 +33,29 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
       setIsUserRegistered(true);
       setUserEmail(profile.email);
       setUserPhone(profile.phone || '');
+      setIsEmailVerified(user.emailVerified);
       setCurrentStep('verification');
     } else {
       setIsUserRegistered(false);
+      setIsEmailVerified(false);
       setCurrentStep('registration');
     }
   }, [user, profile, isOpen]);
+
+  // Verificar el estado de verificación una sola vez al entrar al paso
+  useEffect(() => {
+    if (currentStep === 'verification' && user && microfinancieraId && !isEmailVerified) {
+      const checkVerification = async () => {
+        const { verificationService } = await import('@/services/verificationService');
+        const verified = await verificationService.isEmailVerified(user.uid, microfinancieraId);
+        if (verified) {
+          setIsEmailVerified(true);
+        }
+      };
+
+      checkVerification();
+    }
+  }, [currentStep, user, microfinancieraId]);
 
   const steps = [
     { id: 'registration', title: 'Registro', description: 'Crea tu cuenta' },
@@ -62,7 +81,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
 
   const goToPreviousStep = () => {
     const currentIndex = getCurrentStepIndex();
-    if (currentIndex > 0) {
+    // No permitir volver al paso 0 (registro) si el usuario ya está autenticado
+    if (currentIndex > 0 && !(currentIndex === 1 && isUserRegistered)) {
       setCurrentStep(steps[currentIndex - 1].id as ApplicationStep);
     }
   };
@@ -82,6 +102,27 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
 
   const handleRegisterRequired = () => {
     setShowRegisterModal(true);
+  };
+
+  const handleApplicationSuccess = () => {
+    setApplicationSubmitted(true);
+    goToNextStep();
+  };
+
+  const handleVerificationSuccess = () => {
+    setIsEmailVerified(true);
+  };
+
+  const canGoToNextStep = () => {
+    // En paso 1 (verificación), verificar que el email esté verificado
+    if (currentStep === 'verification' && !isEmailVerified) {
+      return false;
+    }
+    // En paso 2 (solicitud), verificar que la aplicación haya sido enviada
+    if (currentStep === 'pre-application' && !applicationSubmitted) {
+      return false;
+    }
+    return true;
   };
 
   const renderStepContent = () => {
@@ -110,9 +151,26 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
         }
         return <RegistrationForm />;
       case 'verification':
-        return <VerificationForm contactType="email" contactValue={userEmail} />;
+        return (
+          <div className="space-y-4">
+            <VerificationForm
+              contactType="email"
+              contactValue={userEmail}
+              onSuccess={handleVerificationSuccess}
+            />
+            {!isEmailVerified && (
+              <Card className="border-yellow-200 bg-yellow-50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ Debes verificar tu correo electrónico antes de continuar al siguiente paso.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
       case 'pre-application':
-        return <CompleteLoanApplicationForm onSuccess={goToNextStep} />;
+        return <CompleteLoanApplicationForm onSuccess={handleApplicationSuccess} />;
       case 'complete':
         return (
           <Card className="w-full max-w-md mx-auto text-center">
@@ -172,8 +230,8 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
                 {steps.map((step, index) => (
                   <div key={step.id} className="text-center">
                     <div className={`w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-semibold ${index <= getCurrentStepIndex()
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
                       }`}>
                       {index + 1}
                     </div>
@@ -191,12 +249,12 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
           </div>
 
           {/* Navigation */}
-          {currentStep !== 'complete' && (
+          {currentStep !== 'complete' && currentStep !== 'registration' && (
             <div className="flex justify-between px-6 pb-4">
               <Button
                 variant="outline"
                 onClick={goToPreviousStep}
-                disabled={getCurrentStepIndex() === 0}
+                disabled={getCurrentStepIndex() === 0 || (getCurrentStepIndex() === 1 && isUserRegistered)}
                 data-testid="button-previous-step"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -205,7 +263,7 @@ export default function ApplicationModal({ isOpen, onClose }: ApplicationModalPr
 
               <Button
                 onClick={goToNextStep}
-                disabled={getCurrentStepIndex() === steps.length - 1}
+                disabled={getCurrentStepIndex() === steps.length - 1 || !canGoToNextStep()}
                 data-testid="button-next-step"
               >
                 Siguiente

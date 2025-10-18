@@ -14,7 +14,7 @@ import { db } from '../lib/firebase';
 
 import type { CompleteLoanApplication } from '../types/loanApplication';
 
-export interface LoanApplication extends CompleteLoanApplication {}
+export interface LoanApplication extends CompleteLoanApplication { }
 
 class LoanApplicationService {
     // Crear nueva solicitud completa

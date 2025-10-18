@@ -47,6 +47,10 @@ export default function VerificationForm({ contactType, contactValue, onSuccess 
         const verified = await verificationService.isEmailVerified(user.uid, microfinancieraId);
         if (verified) {
           setIsVerified(true);
+          // Llamar al callback si ya está verificado
+          if (onSuccess) {
+            onSuccess();
+          }
         } else {
           // Solo enviar código si NO está verificado
           sendVerificationCode();
@@ -105,12 +109,12 @@ export default function VerificationForm({ contactType, contactValue, onSuccess 
       if (result.success) {
         setIsVerified(true);
         console.log('✅ Verificación exitosa');
-        
+
         // Recargar el usuario de Firebase para actualizar emailVerified
         if (user) {
           await user.reload();
         }
-        
+
         // Llamar al callback de éxito después de un breve delay
         setTimeout(() => {
           if (onSuccess) {
