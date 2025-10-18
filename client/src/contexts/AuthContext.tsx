@@ -61,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let profileUnsubscribe: (() => void) | null = null;
 
     const authUnsubscribe = auth.onAuthStateChanged(async (user) => {
-      console.log('Auth state changed:', user?.uid);
       setUser(user);
 
       // Limpiar el listener anterior si existe
@@ -106,8 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const profileRef = doc(usersRef, user.uid);
 
           profileUnsubscribe = onSnapshot(profileRef, (doc) => {
-            console.log('Profile snapshot:', doc.exists(), doc.data());
-
             if (doc.exists()) {
               const userData = doc.data() as AuthUser;
               const profileData: UserProfile = {
